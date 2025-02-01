@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" type="text/css" href="/static/css/style.css">
+    <title>Document</title>
+</head>
+<body>
+        <h1 class="header_h">Доступные космические объекты</h1>
+    <div class="line"></div>
+    <form action="/" method="GET">
+        <input type="text" name="search" placeholder="Поиск по названию">
+        <button type="submit">Поиск</button>
+    </form>
+{{range .Planets}}
+    <div class="card">
+        <form action="/delete/{{.ID}}" method="POST">
+            <input type="hidden" name="redirectURL" value="/">
+            <button class="delete-button" type="submit">&#10006;</button>
+        </form>
+{{/*        <a href="/delete/{{.ID}}" class="delete-button">&#10006;</a>*/}}
+        <img src="/static/img/{{.Image}}" alt="{{.Name}}">
+        <h3>{{.Name}}</h3>
+        <a href="/Planets/{{.ID}}" class="planet-info">Подробнее</a>
+
+    </div>
+{{end}}
+
+</body>
+</html>

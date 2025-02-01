@@ -1,0 +1,89 @@
+.delete-button {
+    color: red;
+    text-decoration: none;
+    font-size: 20px;
+    margin-top: 10px;
+}
+.info-card {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+    width: 70%;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: large;
+}
+.info-img{
+    width: 60%;
+    height: auto;
+    /*display: block;*/
+    /*margin-left: auto;*/
+    /*margin-right:auto ;*/
+}
+.info-card a {
+    display: block;
+    text-align: center;
+    background-color: #ccc;
+    color: #fff;
+    padding: 5px;
+    text-decoration: none;
+    border-radius: 5px;
+    width: 100px;
+    margin: 0 auto;
+}
+
+
+.line{
+    width: 100%;
+    border-top: 4px solid lightgray;
+    margin-bottom: 20px;
+}
+
+.card {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+    width: 20%;
+    Float: left;
+    margin: 20px;
+    border-radius: 2%;
+}
+
+
+.card img {
+    width: 100%;
+    height: auto;
+}
+
+
+.card h3 {
+    margin-top: 10px;
+}
+
+
+.header_h{
+    font-size: 50px;
+    text-align: center;
+}
+.card p {
+    margin-bottom: 10px;
+}
+
+
+.planet-info {
+    display: block;
+    text-align: center;
+    background-color: #ccc;
+    color: #fff;
+    padding: 5px;
+    text-decoration: none;
+    border-radius: 5px;
+    width: 100px;
+    margin: 0 auto;
+}
+
+
+
+
+
+
