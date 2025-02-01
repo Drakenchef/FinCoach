@@ -10,18 +10,6 @@ import (
 	"strconv"
 )
 
-// /Users/drakenchef/go/bin/swag init -g cmd/main/main.go
-
-// PlanetsList godoc
-// @Summary Список планет
-// @Description Получение планет и фильтрация при поиске
-// @Tags Планеты
-// @Produce json
-// @Param search query string false "Получаем определённую планету "
-// @Success 200 {object} models.PlanetsListResp
-// @Failure 400 {object} errorResp "Неверный запрос"
-// @Failure 500 {object} errorResp "Внутренняя ошибка сервера"
-// @Router /Planets [get]
 func (h *Handler) PlanetsList(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	fmt.Println(userID)
@@ -59,16 +47,16 @@ func (h *Handler) PlanetsList(ctx *gin.Context) {
 			return
 		}
 		// Получаем id заявки пользователя
-		userRequestID, err := h.Repository.GetUserRequestID(int(userIDUint))
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
+		//userRequestID, err := h.Repository.GetUserRequestID(int(userIDUint))
+		//if err != nil {
+		//	ctx.JSON(http.StatusInternalServerError, gin.H{
+		//		"error": err.Error(),
+		//	})
+		//	return
+		//}
 		ctx.JSON(http.StatusOK, gin.H{
-			"Planets":   planets,
-			"Flight_id": userRequestID,
+			"Planets": planets,
+			//"Flight_id": userRequestID,
 		})
 	} else {
 		filteredPlanets, err := h.Repository.SearchPlanet(searchQuery)

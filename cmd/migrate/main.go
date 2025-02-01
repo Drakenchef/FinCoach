@@ -21,7 +21,8 @@ func main() {
 	if err := db.AutoMigrate(
 		&models.Users{},
 		&models.Categories{},
-		&models.Transfers{},
+		&models.Spendings{},
+		&models.Credits{},
 	); err != nil {
 		panic("cant migrate db:" + err.Error())
 	}

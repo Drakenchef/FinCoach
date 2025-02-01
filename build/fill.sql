@@ -16,22 +16,6 @@ INSERT INTO categories (ID, Name, Description) VALUES
 (4, 'Одежда', 'Покупка одежды и аксессуаров'),
 (5, 'Коммунальные услуги', 'Оплата счетов за жилье и ЖКУ');
 
--- Заполняем таблицу Users
-INSERT INTO Users (user_name, login, password, role) VALUES
-('Иван Иванов', 'ivan_ivanov', 'hashed_password_1', '0'),
-('Петр Петров', 'petr_petrov', 'hashed_password_2', '0'),
-('Матвей Гордеев', 'moto', 'moto', '0'),
-('moder', 'moder', 'moder', '2');
-
--- Заполняем таблицу Transfers
-INSERT INTO Transfers (id, user_id, date, transfer_type, amount, necessity, is_delete, description, category_id, is_permanent) VALUES
-(1, 1, '2024-01-15', true, 1500.00, true, false, 'Зарплата за январь', NULL, true),
-(2, 1, '2024-01-20', false, 500.00, true, false, 'Покупка продуктов', 1, false),
-(3, 2, '2024-02-05', false, 200.00, true, false, 'Оплата такси', 2, false),
-(4, 2, '2024-02-10', false, 300.00, false, false, 'Поход в кино', 3, false),
-(5, 3, '2024-03-01', true, 2000.00, true, false, 'Аванс за март', NULL, true),
-(6, 3, '2024-03-15', false, 800.00, true, false, 'Оплата коммунальных услуг', 5, false),
-(7, 4, '2024-04-10', false, 1200.00, false, false, 'Покупка куртки', 4, false);
 -- INSERT INTO planets (name, description,radius, distance, gravity, image, type,is_delete) VALUES ('Тест', 'Тест - естественный спутник Земли, являющийся единственным небесным телом, на котором человек уже побывал. Она имеет покрытую кратерами поверхность и орбитирует вокруг Земли, повышая красоту ночного неба.', 1737.1, 384400, 16.6, 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Moon_nearside_LRO_color_mosaic.png/300px-Moon_nearside_LRO_color_mosaic.png','Спутник',false);
 
 -- INSERT INTO flight_requests (id,date_create,date_formation, date_completion, status, AMS, user_id,moder_id, user_login) VALUES (1,'2020-01-01','2022-01-01', '0001-01-01', 'создан', 'AMS123', 1,4,'user1');
