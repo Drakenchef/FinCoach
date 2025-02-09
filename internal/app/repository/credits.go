@@ -38,7 +38,7 @@ func (r *Repository) CreditsList(userID uint, isPermanent bool) (*[]models.Credi
 
 func (r *Repository) AllCreditsList(userID uint) (*[]models.Credits, error) {
 	var credits []models.Credits
-	result := r.db.Where("is_delete = ? and user_id = ?", false, userID).Find(&credits)
+	result := r.db.Where("is_delete = ? and user_id = ?", false, userID).Order("date DESC").Find(&credits)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -46,4 +46,24 @@ func (r *Repository) AllCreditsList(userID uint) (*[]models.Credits, error) {
 		return nil, errors.New("no credits found for the given user")
 	}
 	return &credits, nil
+}
+
+func (r *Repository) GetCreditByID(creditID string, userID uint) (*models.Credits, error) {
+	var credit models.Credits
+	result := r.db.Where("id = ? AND user_id = ? AND is_delete = ?", creditID, userID, false).First(&credit)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, errors.New("credit not found")
+	}
+	return &credit, nil
+}
+
+func (r *Repository) UpdateCredit(credit *models.Credits) error {
+	result := r.db.Save(credit)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
 }

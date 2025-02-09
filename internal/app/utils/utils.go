@@ -1,49 +1,12 @@
 package utils
 
 import (
-	"FinCoach/internal/app/models"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/xid"
 	"strconv"
-	"strings"
+	"time"
 )
-
-func FindElement(slice []models.Planet, target models.Planet) int {
-	for i, val := range slice {
-		if val == target {
-			return i
-		}
-	}
-
-	return -1
-}
-
-func Max(num1 int, num2 int) int {
-	if num1 > num2 {
-		return num1
-	}
-	return num2
-}
-
-func Min(num1 int, num2 int) int {
-	if num1 < num2 {
-		return num1
-	}
-	return num2
-}
-
-func GenerateUniqueName(imageName *string) error {
-	parts := strings.Split(*imageName, ".")
-	if len(parts) > 1 {
-		fileExt := parts[len(parts)-1]
-		uniqueID := xid.New()
-		*imageName = fmt.Sprintf("%s.%s", uniqueID.String(), fileExt)
-		return nil
-	}
-	return fmt.Errorf("uncorrect file name. not fount image extension")
-}
 
 func GetUserID(ctx *gin.Context) (uint, error) {
 	userID, exists := ctx.Get("user_id")
@@ -68,4 +31,13 @@ func GetUserID(ctx *gin.Context) (uint, error) {
 		return 0, errors.New("user_id is not of a supported type")
 	}
 	return userIDUint, nil
+}
+
+func ParseDate(dateStr string) (string, error) {
+	_, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return "", errors.New("invalid date format, use YYYY-MM-DD")
+	}
+
+	return dateStr, nil
 }

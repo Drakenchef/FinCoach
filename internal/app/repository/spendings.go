@@ -28,7 +28,7 @@ func (r *Repository) AddSpending(userID uint, amount float64, description string
 func (r *Repository) AllSpendingsList(userID uint) (*[]models.Spendings, error) {
 	var spendings []models.Spendings
 
-	result := r.db.Where("is_delete = ? and user_id = ?", false, userID).Find(&spendings)
+	result := r.db.Where("is_delete = ? and user_id = ?", false, userID).Order("date DESC").Find(&spendings)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -43,7 +43,7 @@ func (r *Repository) SpendingsList(userID uint, isPermanent bool, categoryID uin
 	var spendings []models.Spendings
 
 	if categoryID != 0 {
-		result := r.db.Where("is_delete = ? and user_id = ? and is_permanent = ? and category_id = ?", false, userID, isPermanent, categoryID).Find(&spendings)
+		result := r.db.Where("is_delete = ? and user_id = ? and is_permanent = ? and category_id = ?", false, userID, isPermanent, categoryID).Order("date DESC").Find(&spendings)
 		if result.Error != nil {
 			return nil, result.Error
 		}
@@ -51,7 +51,7 @@ func (r *Repository) SpendingsList(userID uint, isPermanent bool, categoryID uin
 			return nil, errors.New("no spendings found for the given user")
 		}
 	} else {
-		result := r.db.Where("is_delete = ? and user_id = ? and is_permanent = ?", false, userID, isPermanent).Find(&spendings)
+		result := r.db.Where("is_delete = ? and user_id = ? and is_permanent = ?", false, userID, isPermanent).Order("date DESC").Find(&spendings)
 		if result.Error != nil {
 			return nil, result.Error
 		}
@@ -61,4 +61,24 @@ func (r *Repository) SpendingsList(userID uint, isPermanent bool, categoryID uin
 	}
 
 	return &spendings, nil
+}
+
+func (r *Repository) GetSpendingByID(spendingID string, userID uint) (*models.Spendings, error) {
+	var spending models.Spendings
+	result := r.db.Where("id = ? AND user_id = ? AND is_delete = ?", spendingID, userID, false).First(&spending)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, errors.New("credit not found")
+	}
+	return &spending, nil
+}
+
+func (r *Repository) UpdateSpending(spending *models.Spendings) error {
+	result := r.db.Save(spending)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
 }

@@ -11,5 +11,4 @@ type Credits struct {
 	IsPermanent bool    `json:"is_permanent"`                 // Является ли перевод "постоянным"
 	Date        string  `gorm:"type:date" json:"date"`        // Дата перевода
 	IsDelete    bool    `json:"is_delete"`                    // Удалено или нет
-
 }
