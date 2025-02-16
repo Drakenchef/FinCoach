@@ -9,9 +9,9 @@ import (
 )
 
 type CreditRequest struct {
-	Amount      float64 `json:"amount" binding:"required"`       // Сумма перевода
-	Description string  `json:"description" binding:"required"`  // Описание перевода
-	IsPermanent bool    `json:"is_permanent" binding:"required"` // Является ли перевод постоянным
+	Amount      float64 `json:"amount" binding:"required"`      // Сумма перевода
+	Description string  `json:"description" binding:"required"` // Описание перевода
+	IsPermanent bool    `json:"is_permanent"`                   // Является ли перевод постоянным
 	Date        *string `json:"date"`
 }
 
@@ -42,7 +42,7 @@ func (h *Handler) AddCredit(ctx *gin.Context) {
 	}
 
 	// Если Date пустая, то устанавливаем текущую дату
-	date := time.Now().Format("2006-01-02")
+	date := time.Now()
 	if req.Date != nil {
 		parseDate, err := utils.ParseDate(*req.Date)
 		if err != nil {
@@ -187,7 +187,12 @@ func (h *Handler) UpdateCreditByID(ctx *gin.Context) {
 		credit.IsPermanent = *req.IsPermanent
 	}
 	if req.Date != nil {
-		credit.Date = *req.Date
+		date, err := utils.ParseDate(*req.Date)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "date must be in correct format"})
+			return
+		}
+		credit.Date = date
 	}
 
 	// Сохраняем обновленную запись

@@ -33,11 +33,10 @@ func GetUserID(ctx *gin.Context) (uint, error) {
 	return userIDUint, nil
 }
 
-func ParseDate(dateStr string) (string, error) {
-	_, err := time.Parse("2006-01-02", dateStr)
+func ParseDate(dateStr string) (time.Time, error) {
+	parsedDate, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		return "", errors.New("invalid date format, use YYYY-MM-DD")
+		return time.Time{}, errors.New("invalid date format, use YYYY-MM-DD")
 	}
-
-	return dateStr, nil
+	return parsedDate, nil
 }

@@ -44,16 +44,8 @@ func (h *Handler) AddSpending(ctx *gin.Context) {
 		return
 	}
 
-	//// Проверяем наличие поля Date в JSON-запросе
-	//if _, exists := ctx.GetPostForm("date"); !exists {
-	//	ctx.JSON(http.StatusBadRequest, gin.H{
-	//		"error": "Date field is required",
-	//	})
-	//	return
-	//}
-
 	// Если Date пустая, то устанавливаем текущую дату
-	date := time.Now().Format("2006-01-02")
+	date := time.Now()
 	if req.Date != nil {
 		parseDate, err := utils.ParseDate(*req.Date)
 		if err != nil {
@@ -215,7 +207,12 @@ func (h *Handler) UpdateSpendingByID(ctx *gin.Context) {
 		spending.IsPermanent = *req.IsPermanent
 	}
 	if req.Date != nil {
-		spending.Date = *req.Date
+		date, err := utils.ParseDate(*req.Date)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "date must be in correct format"})
+			return
+		}
+		spending.Date = date
 	}
 
 	if req.CategoryID != 0 {

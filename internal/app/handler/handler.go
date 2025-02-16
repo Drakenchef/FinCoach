@@ -30,6 +30,7 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	h.UserCRUD(router)
 	h.CreditCRUD(router)
 	h.SpendingCRUD(router)
+	h.Balance(router)
 	registerStatic(router)
 }
 func (h *Handler) UserCRUD(router *gin.Engine) {
@@ -53,7 +54,18 @@ func (h *Handler) SpendingCRUD(router *gin.Engine) {
 	router.GET("/Spending/:id", h.WithIdCheck(role.Buyer, role.Moder), h.GetSpendingByID)
 	router.PUT("/Spending/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateSpendingByID)
 	router.DELETE("/Spending/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteSpendingByID)
+}
 
+func (h *Handler) Balance(router *gin.Engine) {
+	router.GET("/Balance", h.WithIdCheck(role.Buyer, role.Moder), h.GetBalance)
+}
+
+func (h *Handler) GoalCRUD(router *gin.Engine) {
+	router.POST("/AddGoal", h.WithIdCheck(role.Buyer, role.Moder), h.AddSpending)
+	router.GET("/Goals", h.WithIdCheck(role.Buyer, role.Moder), h.GetSpendings)
+	router.GET("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.GetSpendingByID)
+	router.PUT("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateSpendingByID)
+	router.DELETE("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteSpendingByID)
 }
 
 //	func (h *Handler) PlanetCRUD(router *gin.Engine) {

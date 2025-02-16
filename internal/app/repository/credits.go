@@ -3,9 +3,10 @@ package repository
 import (
 	"FinCoach/internal/app/models"
 	"errors"
+	"time"
 )
 
-func (r *Repository) AddCredit(userID uint, amount float64, description string, isPermanent bool, date string) error {
+func (r *Repository) AddCredit(userID uint, amount float64, description string, isPermanent bool, date time.Time) error {
 	// Создаем объект Transfer
 	credit := models.Credits{
 		UserID:      userID,
