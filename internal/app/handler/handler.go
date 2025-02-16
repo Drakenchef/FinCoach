@@ -31,6 +31,7 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	h.CreditCRUD(router)
 	h.SpendingCRUD(router)
 	h.Balance(router)
+	h.GoalCRUD(router)
 	registerStatic(router)
 }
 func (h *Handler) UserCRUD(router *gin.Engine) {
@@ -41,7 +42,7 @@ func (h *Handler) UserCRUD(router *gin.Engine) {
 }
 
 func (h *Handler) CreditCRUD(router *gin.Engine) {
-	router.POST("/AddCredit", h.WithIdCheck(role.Buyer, role.Moder), h.AddCredit)
+	router.POST("/AddCredit", h.WithIdCheck(role.Buyer, role.Moder), h.GoalCheckMiddleware(), h.AddCredit)
 	router.GET("/Credits", h.WithIdCheck(role.Buyer, role.Moder), h.GetCredits)
 	router.GET("/Credit/:id", h.WithIdCheck(role.Buyer, role.Moder), h.GetCreditByID)
 	router.PUT("/Credit/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateCreditByID)
@@ -61,45 +62,14 @@ func (h *Handler) Balance(router *gin.Engine) {
 }
 
 func (h *Handler) GoalCRUD(router *gin.Engine) {
-	router.POST("/AddGoal", h.WithIdCheck(role.Buyer, role.Moder), h.AddSpending)
-	router.GET("/Goals", h.WithIdCheck(role.Buyer, role.Moder), h.GetSpendings)
-	router.GET("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.GetSpendingByID)
-	router.PUT("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateSpendingByID)
-	router.DELETE("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteSpendingByID)
+	router.POST("/AddGoal", h.WithIdCheck(role.Buyer, role.Moder), h.AddGoal)
+	router.GET("/Goals", h.WithIdCheck(role.Buyer, role.Moder), h.GetGoals)
+	router.GET("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.GetGoalByID)
+	router.PUT("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateGoalByID)
+	router.PUT("/CurrentGoal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.SelectCurrentGoalByID)
+	router.GET("/CurrentGoal", h.WithIdCheck(role.Buyer, role.Moder), h.GetCurrentGoal)
+	router.DELETE("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteGoalByID)
 }
-
-//	func (h *Handler) PlanetCRUD(router *gin.Engine) {
-//		router.GET("/Planets", h.PlanetsList)
-//		router.GET("/Planet/:id", h.PlanetById)
-//		//router.POST("/Planets", h.WithAuthCheck(role.Moder, role.Admin), h.AddPlanet)
-//		router.PUT("/Planets/:id", h.WithAuthCheck(role.Moder, role.Admin), h.UpdatePlanet)
-//		router.DELETE("/Planets", h.WithAuthCheck(role.Moder, role.Admin), h.DeletePlanet)
-//	}
-//func (h *Handler) FlightCRUD(router *gin.Engine) {
-//	router.GET("/Flights", h.WithIdCheck(role.Buyer, role.Moder), h.FlightsList)
-//	router.GET("/Flights/:id", h.WithIdCheck(role.Buyer, role.Moder), h.FlightById)
-//	router.DELETE("/Flights", h.WithAuthCheck(role.Moder), h.DeleteFlight)
-//	router.PUT("/Flights", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateFlight)
-//	router.PUT("/FlightsUser/:id", h.WithAuthCheck(role.Buyer, role.Moder), h.UserUpdateFlightStatusById)
-//	router.PUT("/FlightsModer/:id", h.WithIdCheck(role.Moder), h.ModerUpdateFlightStatusById)
-//	router.GET("/UsersFlight", h.WithIdCheck(role.Buyer, role.Moder), h.UsersFlight)
-//	router.PUT("/UsersFlightUpdate", h.WithIdCheck(role.Buyer, role.Moder), h.UsersUpdateFlight)
-//	router.PUT("/UpdateFlightAsyncResult/:id", h.UpdateFlightAsyncResult)
-//}
-
-//func (h *Handler) PlanetsRequestsCRUD(router *gin.Engine) {
-//	router.POST("/PlanetsRequests", h.WithIdCheck(role.Buyer, role.Moder), h.AddPlanetToRequest)
-//	router.DELETE("/PlanetsRequests", h.WithAuthCheck(role.Buyer, role.Moder), h.DeletePlanetRequest)
-//	router.PUT("/PlanetsRequests", h.WithAuthCheck(role.Buyer, role.Moder), h.UpdatePlanetNumberInRequest)
-//	router.GET("/ping", h.WithAuthCheck(role.Moder), h.Ping)
-//}
-
-//func registerStatic(router *gin.Engine) {
-//	router.LoadHTMLGlob("static/html/*")
-//	router.Static("/static", "./static")
-//	router.Static("/css", "./static")
-//	router.Static("/img", "./static")
-//}
 
 // request status
 

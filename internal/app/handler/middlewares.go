@@ -3,12 +3,14 @@ package handler
 import (
 	"FinCoach/internal/app/models"
 	"FinCoach/internal/app/role"
+	"FinCoach/internal/app/utils"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 const jwtPrefix = "Bearer "
@@ -139,4 +141,68 @@ func (h *Handler) WithoutAuthCheck(assignedRoles ...role.Role) func(ctx *gin.Con
 		return
 	}
 
+}
+
+func (h *Handler) GoalCheckMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		// Получаем userID из контекста
+		userID, err := utils.GetUserID(ctx)
+		if err != nil {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Unauthorized user",
+			})
+			ctx.Abort()
+			return
+		}
+
+		// Получаем баланс пользователя
+		balance, err := h.Repository.GetBalance(userID)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to get user balance: " + err.Error(),
+			})
+			ctx.Abort()
+			return
+		}
+
+		// Обновляем все достижения целей, которые соответствуют условиям
+		now := time.Now()
+		if err := h.Repository.MarkGoalsAsAchieved(userID, balance, now); err != nil {
+			ctx.Next()
+			return
+		}
+
+		// Получаем текущую цель
+		currentGoal, err := h.Repository.GetCurrentGoal(userID)
+		if err != nil {
+			if err.Error() == "no current goal found" {
+				ctx.Next()
+				return
+			}
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to get current goal: " + err.Error(),
+			})
+			ctx.Abort()
+			return
+		}
+
+		// Если текущая цель достигнута, ищем следующую самую новую незавершенную цель
+		if currentGoal.IsAchieved {
+			newCurrentGoal, err := h.Repository.FindNewestUnachievedGoal(userID)
+			if err == nil && newCurrentGoal != nil {
+				// Назначаем новую текущую цель
+				newCurrentGoal.IsCurrent = true
+				if err := h.Repository.UpdateGoal(newCurrentGoal); err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Failed to update new current goal: " + err.Error(),
+					})
+					ctx.Abort()
+					return
+				}
+			}
+		}
+
+		// Продолжаем выполнение запроса
+		ctx.Next()
+	}
 }
