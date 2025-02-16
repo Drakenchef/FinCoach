@@ -199,6 +199,14 @@ func (h *Handler) GoalCheckMiddleware() gin.HandlerFunc {
 					ctx.Abort()
 					return
 				}
+				currentGoal.IsCurrent = false
+				if err := h.Repository.UpdateGoal(currentGoal); err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Failed to update current goal: " + err.Error(),
+					})
+					ctx.Abort()
+					return
+				}
 			}
 		}
 
