@@ -34,6 +34,7 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	h.SpendingCRUD(router)
 	h.Balance(router)
 	h.GoalCRUD(router)
+	h.MainPage(router)
 	registerStatic(router)
 }
 func (h *Handler) UserCRUD(router *gin.Engine) {
@@ -71,6 +72,10 @@ func (h *Handler) GoalCRUD(router *gin.Engine) {
 	router.PUT("/CurrentGoal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.SelectCurrentGoalByID)
 	router.GET("/CurrentGoal", h.WithIdCheck(role.Buyer, role.Moder), h.GetCurrentGoal)
 	router.DELETE("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteGoalByID)
+}
+
+func (h *Handler) MainPage(router *gin.Engine) {
+	router.GET("/", h.WithIdCheck(role.Buyer, role.Moder), h.GetRecommendation)
 }
 
 // request status

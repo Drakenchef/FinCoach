@@ -24,6 +24,7 @@ func main() {
 		&models.Spendings{},
 		&models.Credits{},
 		&models.Goals{},
+		&models.Recommendations{},
 	); err != nil {
 		panic("cant migrate db:" + err.Error())
 	}
