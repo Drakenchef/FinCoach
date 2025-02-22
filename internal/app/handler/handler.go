@@ -10,6 +10,8 @@ import (
 	"net/http"
 )
 
+// сделать аналитику категорий в конце месяца по сравнению с прошлыми месяца - если потратил больше, то задать вопрос (задумайтесь почему так)
+
 type Handler struct {
 	Logger     *logrus.Logger
 	Repository *repository.Repository
