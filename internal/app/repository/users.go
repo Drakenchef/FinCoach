@@ -33,3 +33,28 @@ func (r *Repository) GetUserById(id uint) *models.Users {
 
 	return user
 }
+
+func (r *Repository) IsNewUser(userID uint) (bool, error) {
+	var creditsCount int64
+	result := r.db.Model(&models.Credits{}).
+		Where("user_id = ? AND is_delete = false", userID).
+		Count(&creditsCount)
+	if result.Error != nil {
+		return false, result.Error
+	}
+
+	var spendingsCount int64
+	result = r.db.Model(&models.Spendings{}).
+		Where("user_id = ? AND is_delete = false", userID).
+		Count(&spendingsCount)
+	if result.Error != nil {
+		return false, result.Error
+	}
+
+	// Если в сумме нет ни кредитов, ни трат, считаем пользователя "новым"
+	if creditsCount+spendingsCount == 0 {
+		return true, nil
+	}
+
+	return false, nil
+}

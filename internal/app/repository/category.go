@@ -3,6 +3,8 @@ package repository
 import (
 	"FinCoach/internal/app/models"
 	"fmt"
+	"gorm.io/gorm"
+	"time"
 )
 
 func (r *Repository) CategoryExistsFlag(categoryID uint) (bool, error) {
@@ -74,4 +76,64 @@ func (r *Repository) GetCategoryByID(categoryID int) (*models.Categories, error)
 		return nil, result.Error
 	}
 	return &category, nil
+}
+
+// CheckDominantCategory возвращает категорию, которая занимает наибольшую долю
+// расходов за текущий месяц, и булево значение, указывающее, является ли она
+// "доминирующей" (например, больше 50% от всех расходов).
+func (r *Repository) CheckDominantCategory(userID uint) (*models.Categories, bool, error) {
+	type categorySum struct {
+		CategoryID uint
+		Total      float64
+	}
+
+	// Определяем границы текущего месяца
+	now := time.Now()
+	firstDayOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	nextMonth := firstDayOfThisMonth.AddDate(0, 1, 0)
+
+	// Выбираем сумму расходов по каждой категории за текущий месяц
+	var sums []categorySum
+	err := r.db.
+		Table("spendings").
+		Select("category_id, SUM(amount) as total").
+		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfThisMonth, nextMonth).
+		Group("category_id").
+		Scan(&sums).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, false, err
+	}
+
+	if len(sums) == 0 {
+		// Нет расходов в этом месяце
+		return nil, false, nil
+	}
+
+	// Находим категорию с наибольшими расходами (maxSum) и суммарную сумму (totalSum)
+	var maxSum float64
+	var totalSum float64
+	var maxCategoryID uint
+
+	for _, cs := range sums {
+		totalSum += cs.Total
+		if cs.Total > maxSum {
+			maxSum = cs.Total
+			maxCategoryID = cs.CategoryID
+		}
+	}
+
+	// Проверяем, является ли maxSum более 50% от totalSum
+	isDominant := false
+	if totalSum > 0 && (maxSum/totalSum) >= 0.5 {
+		isDominant = true
+	}
+
+	// Получаем модель категории из базы
+	var category models.Categories
+	err = r.db.First(&category, maxCategoryID).Error
+	if err != nil {
+		return nil, false, err
+	}
+
+	return &category, isDominant, nil
 }

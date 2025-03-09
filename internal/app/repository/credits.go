@@ -68,3 +68,42 @@ func (r *Repository) UpdateCredit(credit *models.Credits) error {
 	}
 	return nil
 }
+
+func (r *Repository) GetThisMonthCreditsSum(userID uint) (float64, error) {
+	var sum float64
+	now := time.Now()
+
+	// Определяем начало и конец текущего месяца
+	firstDayOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	// Для удобства можно взять начало следующего месяца, тогда условие будет date < nextMonth
+	nextMonth := firstDayOfThisMonth.AddDate(0, 1, 0)
+
+	err := r.db.Model(&models.Credits{}).
+		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfThisMonth, nextMonth).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&sum).Error
+	if err != nil {
+		return 0, err
+	}
+	return sum, nil
+}
+
+func (r *Repository) GetPrevMonthCreditsSum(userID uint) (float64, error) {
+	var sum float64
+	now := time.Now()
+
+	// Определяем начало предыдущего месяца:
+	// Например, берём последний день прошлого месяца и смещаемся к 1 числу
+	firstDayOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	lastMonth := firstDayOfThisMonth.AddDate(0, 0, -1) // Это будет последний день предыдущего месяца
+	firstDayOfPrevMonth := time.Date(lastMonth.Year(), lastMonth.Month(), 1, 0, 0, 0, 0, now.Location())
+
+	err := r.db.Model(&models.Credits{}).
+		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfPrevMonth, firstDayOfThisMonth).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&sum).Error
+	if err != nil {
+		return 0, err
+	}
+	return sum, nil
+}
