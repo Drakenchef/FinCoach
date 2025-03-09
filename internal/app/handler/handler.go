@@ -10,8 +10,6 @@ import (
 	"net/http"
 )
 
-// сделать аналитику категорий в конце месяца по сравнению с прошлыми месяца - если потратил больше, то задать вопрос (задумайтесь почему так)
-
 type Handler struct {
 	Logger     *logrus.Logger
 	Repository *repository.Repository
@@ -35,6 +33,7 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	h.Balance(router)
 	h.GoalCRUD(router)
 	h.MainPage(router)
+	h.CategoriesCRUD(router)
 	registerStatic(router)
 }
 func (h *Handler) UserCRUD(router *gin.Engine) {
@@ -72,6 +71,14 @@ func (h *Handler) GoalCRUD(router *gin.Engine) {
 	router.PUT("/CurrentGoal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.SelectCurrentGoalByID)
 	router.GET("/CurrentGoal", h.WithIdCheck(role.Buyer, role.Moder), h.GetCurrentGoal)
 	router.DELETE("/Goal/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteGoalByID)
+}
+
+func (h *Handler) CategoriesCRUD(router *gin.Engine) {
+	router.POST("/AddCategory", h.WithIdCheck(role.Buyer, role.Moder), h.AddCategory)
+	router.GET("/Categories", h.WithIdCheck(role.Buyer, role.Moder), h.GetCategories)
+	router.GET("/Category/:id", h.WithIdCheck(role.Buyer, role.Moder), h.GetCategoryByID)
+	router.PUT("/Category/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateCategoryByID)
+	router.DELETE("/Category/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteCategoryByID)
 }
 
 func (h *Handler) MainPage(router *gin.Engine) {

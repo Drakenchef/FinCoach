@@ -40,7 +40,7 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation by id from DB"})
 				return
 			}
-			category, e := h.Repository.GetCategoryByID(int(catsAndPercDiffs[i].CategoryID))
+			category, e := h.Repository.GetCategoryByIDAndUserID(int(catsAndPercDiffs[i].CategoryID), userID)
 			if e != nil {
 				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get category by id from DB"})
 				return

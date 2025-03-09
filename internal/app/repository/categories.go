@@ -2,6 +2,7 @@ package repository
 
 import (
 	"FinCoach/internal/app/models"
+	"errors"
 	"fmt"
 	"gorm.io/gorm"
 	"time"
@@ -69,9 +70,9 @@ func (r *Repository) CategoryAnalysisPrevMonth(userID uint) ([]CategoryAnalysisR
 	return results, nil
 }
 
-func (r *Repository) GetCategoryByID(categoryID int) (*models.Categories, error) {
+func (r *Repository) GetCategoryByIDAndUserID(categoryID int, userID uint) (*models.Categories, error) {
 	var category models.Categories
-	result := r.db.Where("id = ?", categoryID).First(&category)
+	result := r.db.Where("id = ? and user_id = ? and is_delete = ?", categoryID, userID, false).First(&category)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -136,4 +137,42 @@ func (r *Repository) CheckDominantCategory(userID uint) (*models.Categories, boo
 	}
 
 	return &category, isDominant, nil
+}
+
+// AddCategory создает новую категорию (цель) в базе данных.
+func (r *Repository) AddCategory(userID uint, name, description string) error {
+	category := models.Categories{
+		UserID:      userID,
+		Name:        name,
+		Description: description,
+		IsDelete:    false,
+	}
+
+	if err := r.db.Create(&category).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetAllCategoriesList возвращает все категории пользователя, не помеченные как удаленные.
+func (r *Repository) GetAllCategoriesList(userID uint) (*[]models.Categories, error) {
+	var categories []models.Categories
+	result := r.db.Where("is_delete = ? AND user_id = ?", false, userID).
+		Find(&categories)
+
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, errors.New("no categories found for the given user")
+	}
+	return &categories, nil
+}
+
+// UpdateCategory обновляет запись о категории в базе данных.
+func (r *Repository) UpdateCategory(category *models.Categories) error {
+	if err := r.db.Save(category).Error; err != nil {
+		return err
+	}
+	return nil
 }
