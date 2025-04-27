@@ -258,7 +258,7 @@ func (h *Handler) GetCurrentGoal(ctx *gin.Context) {
 
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
-		"Goals": goals,
+		"Goal": goals,
 	})
 }
 
