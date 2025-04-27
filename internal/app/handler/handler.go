@@ -83,6 +83,7 @@ func (h *Handler) CategoriesCRUD(router *gin.Engine) {
 
 func (h *Handler) MainPage(router *gin.Engine) {
 	router.GET("/", h.WithIdCheck(role.Buyer, role.Moder), h.GetRecommendation)
+	router.GET("/GetFinancialOverview", h.WithIdCheck(role.Buyer, role.Moder), h.GetFinancialOverview)
 }
 
 // request status

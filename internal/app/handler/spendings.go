@@ -282,6 +282,6 @@ func (h *Handler) DeleteSpendingByID(ctx *gin.Context) {
 
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Credit deleted successfully",
+		"message": "Spending deleted successfully",
 	})
 }
