@@ -26,6 +26,6 @@ func (h *Handler) GetBalance(ctx *gin.Context) {
 
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
-		"Balance": balance,
+		"balance": balance,
 	})
 }
