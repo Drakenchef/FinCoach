@@ -5,9 +5,11 @@ import (
 	redis2 "FinCoach/internal/app/redis"
 	"FinCoach/internal/app/repository"
 	"FinCoach/internal/app/role"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
+	"time"
 )
 
 type Handler struct {
@@ -27,6 +29,14 @@ func NewHandler(l *logrus.Logger, r *repository.Repository, conf *config.Config,
 }
 
 func (h *Handler) RegisterHandler(router *gin.Engine) {
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"POST", "GET", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 	h.UserCRUD(router)
 	h.CreditCRUD(router)
 	h.SpendingCRUD(router)
@@ -82,8 +92,8 @@ func (h *Handler) CategoriesCRUD(router *gin.Engine) {
 }
 
 func (h *Handler) MainPage(router *gin.Engine) {
-	router.GET("/GetRecommendations", h.WithIdCheck(role.Buyer, role.Moder), h.GetRecommendation)
-	router.GET("/GetFinancialOverview", h.WithIdCheck(role.Buyer, role.Moder), h.GetFinancialOverview)
+	router.GET("/Recommendations", h.WithIdCheck(role.Buyer, role.Moder), h.GetRecommendation)
+	router.GET("/FinancialOverview", h.WithIdCheck(role.Buyer, role.Moder), h.GetFinancialOverview)
 }
 
 // request status

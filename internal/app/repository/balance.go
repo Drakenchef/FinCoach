@@ -76,6 +76,13 @@ func (r *Repository) GetBalance(userID uint) (float64, error) {
 
 // Функция для подсчета количества полных месяцев между двумя датами
 func calculateFullMonths(start, end time.Time) int {
+	if end.Year() == start.Year() && end.Month() == start.Month() && end.Day() >= start.Day() {
+		return 1
+	}
+
+	if end.Year() == start.Year() && end.Month()-1 == start.Month() && end.Day() <= start.Day() {
+		return 2
+	}
 	yearsDiff := end.Year() - start.Year()
 	monthsDiff := end.Month() - start.Month()
 	totalMonths := yearsDiff*12 + int(monthsDiff)
