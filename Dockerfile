@@ -9,8 +9,8 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/main/main.go
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/migrate ./cmd/migrate/main.go
+RUN  go build -o /app/server ./cmd/main/main.go
+RUN  go build -o /app/migrate ./cmd/migrate/main.go
 
 FROM debian:bookworm-slim
 
