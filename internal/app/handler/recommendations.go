@@ -194,6 +194,6 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 
 	// Возвращаем успешный ответ с массивом рекомендаций
 	ctx.JSON(http.StatusOK, gin.H{
-		"recommendations": resultRecommendations,
+		"Recommendations": resultRecommendations,
 	})
 }
