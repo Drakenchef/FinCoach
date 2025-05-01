@@ -1,21 +1,6 @@
-services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8888:8888"
-    depends_on:
-      - db
-      - redis
-    environment:
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - DB_NAME=${DB_NAME}
-      - DB_PORT=${DB_PORT}
-      - REDIS_HOST=redis
-    command: ./server
+version: '3.8'
 
+services:
   db:
     image: postgres:12
     volumes:
@@ -27,17 +12,6 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_PASSWORD: ${DB_PASS}
 
-  migrate:
-    build: .
-    depends_on:
-      - db
-    environment:
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - DB_NAME=${DB_NAME}
-      - DB_PORT=${DB_PORT}
-    command: ./migrate
-
   redis:
     image: redis:6.2-alpine
     restart: always
@@ -46,6 +20,39 @@ services:
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - redis-data:/data
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/migrate/Dockerfile
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_PASS: ${DB_PASS}
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    depends_on:
+      - db
+      - redis
+      - migrate
+    ports:
+      - "8888:8888"
+    environment:
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_PASS: ${DB_PASS}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      APP_PORT: ${APP_PORT}
 
 volumes:
   postgresdb-data:
