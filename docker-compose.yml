@@ -1,18 +1,43 @@
-
-version: "3.8"
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8888"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=${DB_PORT}
+      - REDIS_HOST=redis
+    command: ./server
+
   db:
     image: postgres:12
     volumes:
-      - type: volume
-        source: postgresdb-data
-        target: /var/lib/postgresql/data
+      - postgresdb-data:/var/lib/postgresql/data
     ports:
       - "${DB_PORT}:5432"
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_PASSWORD: ${DB_PASS}
+
+  migrate:
+    build: .
+    depends_on:
+      - db
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=${DB_PORT}
+    command: ./migrate
+
   redis:
     image: redis:6.2-alpine
     restart: always
@@ -21,15 +46,6 @@ services:
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - redis-data:/data
-
-#  nginx:
-#    image: nginx:1.19.2-alpine
-#    hostname: nginx
-#    volumes:
-#      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-#    ports:
-#      - "9000:9000"
-#      - "9001:9001"
 
 volumes:
   postgresdb-data:
