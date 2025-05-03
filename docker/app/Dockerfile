@@ -9,6 +9,6 @@ COPY . .
 
 RUN go build -o main ./cmd/main/main.go
 
-EXPOSE ${APP_PORT}
+EXPOSE 8888
 
 CMD ["./main"]
