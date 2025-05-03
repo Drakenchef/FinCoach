@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"FinCoach/internal/app/models"
 	"FinCoach/internal/app/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -50,7 +51,7 @@ func (h *Handler) GetCategories(ctx *gin.Context) {
 	categories, err := h.Repository.GetAllCategoriesList(userID)
 	if err != nil {
 		if err.Error() == "no categories found for the given user" {
-			ctx.JSON(http.StatusOK, gin.H{"Categories": categories})
+			ctx.JSON(http.StatusOK, gin.H{"Categories": []models.Categories{}})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}

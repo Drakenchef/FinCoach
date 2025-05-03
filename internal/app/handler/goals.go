@@ -91,7 +91,7 @@ func (h *Handler) GetGoals(ctx *gin.Context) {
 			})
 		}
 		ctx.JSON(http.StatusOK, gin.H{
-			"Goals": goals,
+			"Goals": []models.Goals{},
 		})
 		return
 	}

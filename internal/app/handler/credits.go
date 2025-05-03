@@ -101,7 +101,7 @@ func (h *Handler) GetCredits(ctx *gin.Context) {
 	if err != nil {
 		if err.Error() == "no credits found for the given user" {
 			ctx.JSON(http.StatusOK, gin.H{
-				"Credits": credits,
+				"Credits": []models.Credits{},
 			})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, gin.H{

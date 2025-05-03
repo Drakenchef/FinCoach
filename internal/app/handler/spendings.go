@@ -120,7 +120,7 @@ func (h *Handler) GetSpendings(ctx *gin.Context) {
 		if err.Error() == "no spendings found for the given user" {
 			// Если не найдено записей
 			ctx.JSON(http.StatusOK, gin.H{
-				"Spendings": spendings,
+				"Spendings": []models.Spendings{},
 			})
 		} else {
 			// Прочие ошибки
