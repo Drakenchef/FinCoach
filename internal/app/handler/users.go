@@ -25,7 +25,7 @@ func (h *Handler) Login(ctx *gin.Context) {
 	}
 	user, err := h.Repository.GetUserByLogin(req.Login)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusForbidden, err)
 		return
 	}
 
@@ -126,7 +126,14 @@ func (h *Handler) Register(ctx *gin.Context) {
 	})
 
 	if err != nil {
-		//h.errorHandler(ctx, http.StatusInternalServerError, err)
+		// Проверяем, является ли ошибка нарушением уникального ограничения
+		if strings.Contains(err.Error(), "duplicate key value") {
+			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{
+				"error": "Пользователь с таким логином уже существует",
+			})
+			return
+		}
+
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
