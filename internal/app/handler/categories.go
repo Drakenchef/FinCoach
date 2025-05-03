@@ -50,7 +50,7 @@ func (h *Handler) GetCategories(ctx *gin.Context) {
 	categories, err := h.Repository.GetAllCategoriesList(userID)
 	if err != nil {
 		if err.Error() == "no categories found for the given user" {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "No categories found."})
+			ctx.JSON(http.StatusOK, gin.H{"Categories": categories})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}

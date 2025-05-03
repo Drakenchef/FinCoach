@@ -119,8 +119,8 @@ func (h *Handler) GetSpendings(ctx *gin.Context) {
 	if err != nil {
 		if err.Error() == "no spendings found for the given user" {
 			// Если не найдено записей
-			ctx.JSON(http.StatusNotFound, gin.H{
-				"error": "No spendings found for the user with the specified parameters.",
+			ctx.JSON(http.StatusOK, gin.H{
+				"Spendings": spendings,
 			})
 		} else {
 			// Прочие ошибки

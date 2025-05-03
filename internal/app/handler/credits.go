@@ -100,8 +100,8 @@ func (h *Handler) GetCredits(ctx *gin.Context) {
 	// Если произошла ошибка в репозитории
 	if err != nil {
 		if err.Error() == "no credits found for the given user" {
-			ctx.JSON(http.StatusNotFound, gin.H{
-				"error": "No credits found for the user.",
+			ctx.JSON(http.StatusOK, gin.H{
+				"Credits": credits,
 			})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, gin.H{
