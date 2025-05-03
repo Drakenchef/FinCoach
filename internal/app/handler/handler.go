@@ -31,7 +31,7 @@ func NewHandler(l *logrus.Logger, r *repository.Repository, conf *config.Config,
 func (h *Handler) RegisterHandler(router *gin.Engine) {
 	router.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
-		AllowMethods:     []string{"POST", "GET", "OPTIONS"},
+		AllowMethods:     []string{"POST", "GET", "OPTIONS", "DELETE", "PUT", "PATCH", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
