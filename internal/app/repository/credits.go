@@ -39,7 +39,11 @@ func (r *Repository) CreditsList(userID uint, isPermanent bool) (*[]models.Credi
 
 func (r *Repository) AllCreditsList(userID uint) (*[]models.Credits, error) {
 	var credits []models.Credits
-	result := r.db.Where("is_delete = ? and user_id = ?", false, userID).Order("date DESC").Find(&credits)
+	result := r.db.
+		Where("is_delete = ? AND user_id = ?", false, userID).
+		Order("date DESC, id DESC"). // Сначала по дате, потом по ID
+		Find(&credits)
+
 	if result.Error != nil {
 		return nil, result.Error
 	}

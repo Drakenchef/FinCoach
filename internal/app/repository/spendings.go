@@ -29,7 +29,7 @@ func (r *Repository) AddSpending(userID uint, amount float64, description string
 func (r *Repository) AllSpendingsList(userID uint) (*[]models.Spendings, error) {
 	var spendings []models.Spendings
 
-	result := r.db.Where("is_delete = ? and user_id = ?", false, userID).Order("date DESC").Find(&spendings)
+	result := r.db.Where("is_delete = ? and user_id = ?", false, userID).Order("date DESC, id DESC").Find(&spendings)
 	if result.Error != nil {
 		return nil, result.Error
 	}
