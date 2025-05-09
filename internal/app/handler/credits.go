@@ -2,6 +2,7 @@ package handler
 
 import (
 	"FinCoach/internal/app/models"
+	"FinCoach/internal/app/repository"
 	"FinCoach/internal/app/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -20,6 +21,7 @@ type UpdateCreditByIDRequest struct {
 	Description string  `json:"description"`  // Описание перевода
 	IsPermanent *bool   `json:"is_permanent"` // Является ли перевод постоянным
 	Date        *string `json:"date"`
+	EndDate     *string `json:"end_date"`
 }
 
 func (h *Handler) AddCredit(ctx *gin.Context) {
@@ -59,6 +61,8 @@ func (h *Handler) AddCredit(ctx *gin.Context) {
 		})
 		return
 	}
+
+	h.AchieveCurrentGoal(ctx)
 
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
@@ -111,6 +115,20 @@ func (h *Handler) GetCredits(ctx *gin.Context) {
 		return
 	}
 
+	for i := range *credits {
+		credit := &(*credits)[i] // получаем указатель на реальный объект, а не копию
+		if credit.IsPermanent {
+			compDate := time.Now()
+			if !credit.EndDate.IsZero() {
+				compDate = credit.EndDate
+			}
+			fullMonth := repository.CalculateFullMonths(credit.Date, compDate)
+			credit.FullAmount = float64(fullMonth) * credit.Amount
+		} else {
+			credit.FullAmount = credit.Amount
+		}
+	}
+
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"Credits": credits,
@@ -139,6 +157,7 @@ func (h *Handler) GetCreditByID(ctx *gin.Context) {
 		return
 	}
 
+	credit.FullAmount = credit.Amount
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"Credit": credit,
@@ -195,6 +214,23 @@ func (h *Handler) UpdateCreditByID(ctx *gin.Context) {
 		credit.Date = date
 	}
 
+	if req.IsPermanent != nil {
+		if *req.IsPermanent == true {
+			if req.EndDate != nil {
+				endDate, err := utils.ParseDate(*req.EndDate)
+				if err != nil {
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": "end_date must be in correct format"})
+					return
+				}
+				if endDate.Before(credit.Date) {
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": "credit end_date must be greater than credit date"})
+					return
+				}
+				credit.EndDate = endDate
+			}
+		}
+	}
+
 	// Сохраняем обновленную запись
 	if err := h.Repository.UpdateCredit(credit); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -202,6 +238,8 @@ func (h *Handler) UpdateCreditByID(ctx *gin.Context) {
 		})
 		return
 	}
+
+	h.AchieveCurrentGoal(ctx)
 
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{

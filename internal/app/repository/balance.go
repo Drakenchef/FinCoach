@@ -34,19 +34,25 @@ func (r *Repository) GetBalance(userID uint) (float64, error) {
 
 	// Обрабатываем постоянные кредиты
 	var permanentCredits []struct {
-		Amount float64
-		Date   time.Time
+		Amount  float64   `db:"amount"`
+		Date    time.Time `db:"date"`
+		EndDate time.Time `db:"end_date"`
 	}
+
 	err = r.db.Model(&models.Credits{}).
 		Where("is_delete = ? AND user_id = ? AND is_permanent = ?", false, userID, true).
-		Select("amount, date").
+		Select("amount, date, end_date").
 		Scan(&permanentCredits).Error
 	if err != nil {
 		return 0, err
 	}
 
 	for _, credit := range permanentCredits {
-		months := calculateFullMonths(credit.Date, currentDate) // Теперь используем credit.Date без парсинга
+		dateForPermCredit := currentDate
+		if !credit.EndDate.IsZero() {
+			dateForPermCredit = credit.EndDate
+		}
+		months := CalculateFullMonths(credit.Date, dateForPermCredit) // Теперь используем credit.Date без парсинга
 		totalPermanentCredits += credit.Amount * float64(months)
 	}
 
@@ -64,7 +70,7 @@ func (r *Repository) GetBalance(userID uint) (float64, error) {
 	}
 
 	for _, spending := range permanentSpendings {
-		months := calculateFullMonths(spending.Date, currentDate) // Теперь без парсинга
+		months := CalculateFullMonths(spending.Date, currentDate) // Теперь без парсинга
 		totalPermanentSpendings += spending.Amount * float64(months)
 	}
 
@@ -74,13 +80,20 @@ func (r *Repository) GetBalance(userID uint) (float64, error) {
 	return balance, nil
 }
 
-// Функция для подсчета количества полных месяцев между двумя датами
-func calculateFullMonths(start, end time.Time) int {
+// CalculateFullMonths функция для подсчета количества полных месяцев между двумя датами
+func CalculateFullMonths(start, end time.Time) int {
+	if end.Before(start) {
+		return 0
+	}
 	if end.Year() == start.Year() && end.Month() == start.Month() && end.Day() >= start.Day() {
 		return 1
 	}
 
-	if end.Year() == start.Year() && end.Month()-1 == start.Month() && end.Day() <= start.Day() {
+	if end.Year() == start.Year() && end.Month()-1 == start.Month() && end.Day() < start.Day() {
+		return 1
+	}
+
+	if end.Year() == start.Year() && end.Month()-1 == start.Month() && end.Day() >= start.Day() {
 		return 2
 	}
 	yearsDiff := end.Year() - start.Year()
@@ -270,5 +283,5 @@ func calculateFullMonthsWithinRange(itemDate, startRange, endRange time.Time) in
 	if itemDate.Before(startRange) {
 		itemDate = startRange
 	}
-	return calculateFullMonths(itemDate, endRange)
+	return CalculateFullMonths(itemDate, endRange)
 }

@@ -63,6 +63,8 @@ func (h *Handler) AddSpending(ctx *gin.Context) {
 		return
 	}
 
+	h.AchieveCurrentGoal(ctx)
+
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Spending added successfully",
@@ -241,6 +243,8 @@ func (h *Handler) UpdateSpendingByID(ctx *gin.Context) {
 		return
 	}
 
+	h.AchieveCurrentGoal(ctx)
+
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Spending updated successfully",
@@ -279,6 +283,8 @@ func (h *Handler) DeleteSpendingByID(ctx *gin.Context) {
 		})
 		return
 	}
+
+	h.AchieveCurrentGoal(ctx)
 
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{

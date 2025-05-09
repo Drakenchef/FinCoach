@@ -24,6 +24,7 @@ func (h *Handler) GetBalance(ctx *gin.Context) {
 		return
 	}
 
+	h.AchieveCurrentGoal(ctx)
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"balance": balance,

@@ -41,7 +41,9 @@ func (r *Repository) AllCreditsList(userID uint) (*[]models.Credits, error) {
 	var credits []models.Credits
 	result := r.db.
 		Where("is_delete = ? AND user_id = ?", false, userID).
-		Order("date DESC, id DESC"). // Сначала по дате, потом по ID
+		Order("is_permanent DESC").
+		Order("date DESC").
+		Order("id DESC").
 		Find(&credits)
 
 	if result.Error != nil {

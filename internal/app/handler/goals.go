@@ -63,6 +63,8 @@ func (h *Handler) AddGoal(ctx *gin.Context) {
 		return
 	}
 
+	h.AchieveCurrentGoal(ctx)
+
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Goal added successfully",
@@ -96,6 +98,8 @@ func (h *Handler) GetGoals(ctx *gin.Context) {
 		return
 	}
 
+	h.AchieveCurrentGoal(ctx)
+
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"Goals": goals,
@@ -123,6 +127,8 @@ func (h *Handler) GetGoalByID(ctx *gin.Context) {
 		})
 		return
 	}
+
+	h.AchieveCurrentGoal(ctx)
 
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
@@ -185,6 +191,8 @@ func (h *Handler) UpdateGoalByID(ctx *gin.Context) {
 		return
 	}
 
+	h.AchieveCurrentGoal(ctx)
+
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Goal updated successfully",
@@ -231,6 +239,8 @@ func (h *Handler) SelectCurrentGoalByID(ctx *gin.Context) {
 		return
 	}
 
+	h.AchieveCurrentGoal(ctx)
+
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Goal updated successfully",
@@ -258,6 +268,8 @@ func (h *Handler) GetCurrentGoal(ctx *gin.Context) {
 		})
 		return
 	}
+
+	h.AchieveCurrentGoal(ctx)
 
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
@@ -302,4 +314,39 @@ func (h *Handler) DeleteGoalByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Goal deleted successfully",
 	})
+}
+
+func (h *Handler) AchieveCurrentGoal(ctx *gin.Context) {
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		// логируем, но не прерываем, так как операция уже произошла
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized user",
+		})
+		return
+	}
+
+	balance, err := h.Repository.GetBalance(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get user balance: " + err.Error(),
+		})
+		return
+	}
+
+	now := time.Now()
+	currentGoal, err := h.Repository.GetCurrentGoal(userID)
+	if err != nil {
+		return
+	}
+
+	if currentGoal.Amount <= balance {
+		currentGoal.IsAchieved = true
+		currentGoal.AchievementDate = now
+	}
+
+	err = h.Repository.UpdateGoal(currentGoal)
+	if err != nil {
+		return
+	}
 }

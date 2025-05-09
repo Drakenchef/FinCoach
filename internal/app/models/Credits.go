@@ -13,4 +13,6 @@ type Credits struct {
 	IsPermanent bool      `json:"is_permanent"`                 // Является ли перевод "постоянным"
 	Date        time.Time `gorm:"type:date" json:"date"`        // Дата перевода
 	IsDelete    bool      `json:"is_delete"`                    // Удалено или нет
+	EndDate     time.Time `gorm:"type:date" json:"end_date"`    // Дата остановки
+	FullAmount  float64   `json:"full_amount"`                  // добавим только тем, кому нужно
 }
