@@ -99,6 +99,7 @@ func CalculateFullMonths(start, end time.Time) int {
 	yearsDiff := end.Year() - start.Year()
 	monthsDiff := end.Month() - start.Month()
 	totalMonths := yearsDiff*12 + int(monthsDiff)
+	totalMonths++
 
 	if end.Day() < start.Day() {
 		totalMonths-- // Если день в конце меньше, чем в начале, значит месяц не полный
