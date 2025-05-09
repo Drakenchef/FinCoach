@@ -54,7 +54,7 @@ func (h *Handler) UserCRUD(router *gin.Engine) {
 }
 
 func (h *Handler) CreditCRUD(router *gin.Engine) {
-	router.POST("/AddCredit", h.WithIdCheck(role.Buyer, role.Moder), h.GoalCheckMiddleware(), h.AddCredit)
+	router.POST("/AddCredit", h.WithIdCheck(role.Buyer, role.Moder), h.AddCredit)
 	router.GET("/Credits", h.WithIdCheck(role.Buyer, role.Moder), h.GetCredits)
 	router.GET("/Credit/:id", h.WithIdCheck(role.Buyer, role.Moder), h.GetCreditByID)
 	router.PUT("/Credit/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateCreditByID)
