@@ -52,7 +52,7 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 	}
 
 	// 2) Баланс снизился по сравнению с прошлым месяцем
-	currBalance, err := h.Repository.GetOnlyThisMonthBalance(userID)
+	currBalance, err := h.Repository.GetBalance(userID)
 	fmt.Println("curr balance:", currBalance)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get current balance"})
