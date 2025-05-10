@@ -222,9 +222,11 @@ func (h *Handler) UpdateCreditByID(ctx *gin.Context) {
 					ctx.JSON(http.StatusBadRequest, gin.H{"error": "end_date must be in correct format"})
 					return
 				}
-				if endDate.Before(credit.Date) {
-					ctx.JSON(http.StatusBadRequest, gin.H{"error": "credit end_date must be greater than credit date"})
-					return
+				if !endDate.IsZero() {
+					if endDate.Before(credit.Date) {
+						ctx.JSON(http.StatusBadRequest, gin.H{"error": "credit end_date must be greater than credit date"})
+						return
+					}
 				}
 				credit.EndDate = endDate
 			}
