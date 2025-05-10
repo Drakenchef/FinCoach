@@ -58,8 +58,9 @@ func (r *Repository) GetBalance(userID uint) (float64, error) {
 
 	// Обрабатываем постоянные расходы
 	var permanentSpendings []struct {
-		Amount float64
-		Date   time.Time
+		Amount  float64   `db:"amount"`
+		Date    time.Time `db:"date"`
+		EndDate time.Time `db:"end_date"`
 	}
 	err = r.db.Model(&models.Spendings{}).
 		Where("is_delete = ? AND user_id = ? AND is_permanent = ?", false, userID, true).
@@ -70,7 +71,11 @@ func (r *Repository) GetBalance(userID uint) (float64, error) {
 	}
 
 	for _, spending := range permanentSpendings {
-		months := CalculateFullMonths(spending.Date, currentDate) // Теперь без парсинга
+		dateForPermSpending := currentDate
+		if !spending.EndDate.IsZero() {
+			dateForPermSpending = spending.EndDate
+		}
+		months := CalculateFullMonths(spending.Date, dateForPermSpending) // Теперь без парсинга
 		totalPermanentSpendings += spending.Amount * float64(months)
 	}
 

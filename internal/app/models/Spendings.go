@@ -13,4 +13,6 @@ type Spendings struct {
 	Date        time.Time  `gorm:"type:date" json:"date"`          // Дата перевода
 	CategoryID  uint       `json:"category_id"`                    // ID категории (связывает с таблицей Categories)
 	Category    Categories `gorm:"foreignKey:CategoryID" json:"-"` // Связь с таблицей категорий
+	EndDate     time.Time  `gorm:"type:date" json:"end_date"`      // Дата остановки
+	FullAmount  float64    `json:"full_amount"`                    // добавим только тем, кому нужно
 }

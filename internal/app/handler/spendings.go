@@ -2,6 +2,7 @@ package handler
 
 import (
 	"FinCoach/internal/app/models"
+	"FinCoach/internal/app/repository"
 	"FinCoach/internal/app/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -23,6 +24,7 @@ type UpdateSpendingByIDRequest struct {
 	IsPermanent *bool   `json:"is_permanent"` // Является ли перевод постоянным
 	Date        *string `json:"date"`
 	CategoryID  uint    `json:"category_id"`
+	EndDate     *string `json:"end_date"`
 }
 
 func (h *Handler) AddSpending(ctx *gin.Context) {
@@ -133,6 +135,20 @@ func (h *Handler) GetSpendings(ctx *gin.Context) {
 		return
 	}
 
+	for i := range *spendings {
+		spending := &(*spendings)[i] // получаем указатель на реальный объект, а не копию
+		if spending.IsPermanent {
+			compDate := time.Now()
+			if !spending.EndDate.IsZero() {
+				compDate = spending.EndDate
+			}
+			fullMonth := repository.CalculateFullMonths(spending.Date, compDate)
+			spending.FullAmount = float64(fullMonth) * spending.Amount
+		} else {
+			spending.FullAmount = spending.Amount
+		}
+	}
+
 	// Возвращаем успешный результат
 	ctx.JSON(http.StatusOK, gin.H{
 		"Spendings": spendings,
@@ -161,6 +177,7 @@ func (h *Handler) GetSpendingByID(ctx *gin.Context) {
 		return
 	}
 
+	spending.FullAmount = spending.Amount
 	// Возвращаем успешный ответ
 	ctx.JSON(http.StatusOK, gin.H{
 		"Spending": spending,
@@ -233,6 +250,25 @@ func (h *Handler) UpdateSpendingByID(ctx *gin.Context) {
 			return
 		}
 		spending.CategoryID = req.CategoryID
+	}
+
+	if req.IsPermanent != nil {
+		if *req.IsPermanent == true {
+			if req.EndDate != nil {
+				endDate, err := utils.ParseDate(*req.EndDate)
+				if err != nil {
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": "end_date must be in correct format"})
+					return
+				}
+				if !endDate.IsZero() {
+					if endDate.Before(spending.Date) {
+						ctx.JSON(http.StatusBadRequest, gin.H{"error": "spending end_date must be greater than spending date"})
+						return
+					}
+				}
+				spending.EndDate = endDate
+			}
+		}
 	}
 
 	// Сохраняем обновленную запись
