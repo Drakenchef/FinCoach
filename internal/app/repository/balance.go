@@ -64,7 +64,7 @@ func (r *Repository) GetBalance(userID uint) (float64, error) {
 	}
 	err = r.db.Model(&models.Spendings{}).
 		Where("is_delete = ? AND user_id = ? AND is_permanent = ?", false, userID, true).
-		Select("amount, date").
+		Select("amount, date, end_date").
 		Scan(&permanentSpendings).Error
 	if err != nil {
 		return 0, err
