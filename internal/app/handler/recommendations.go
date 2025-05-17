@@ -162,18 +162,6 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 	// 777) Проверка - только начал?
 	isNewUser, err := h.Repository.IsNewUser(userID)
 	fmt.Println("IsNewUser:", isNewUser)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error checking if new user"})
-		return
-	}
-	if isNewUser {
-		recommendation, e := h.Repository.GetRecommendationByID(777)
-		if e != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #777 from DB"})
-			return
-		}
-		resultRecommendations = append(resultRecommendations, *recommendation)
-	}
 
 	// 6) Нет накоплений в этом месяце
 	if !isNewUser {
