@@ -14,6 +14,7 @@ type CreditRequest struct {
 	Description string  `json:"description" binding:"required"` // Описание перевода
 	IsPermanent bool    `json:"is_permanent"`                   // Является ли перевод постоянным
 	Date        *string `json:"date"`
+	EndDate     *string `json:"end_date"`
 }
 
 type UpdateCreditByIDRequest struct {
@@ -54,8 +55,18 @@ func (h *Handler) AddCredit(ctx *gin.Context) {
 		}
 		date = parseDate
 	}
+	endDate := time.Time{}
+	if req.EndDate != nil {
+		parseEndDate, err := utils.ParseDate(*req.EndDate)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+		}
+		endDate = parseEndDate
+	}
 	// Вызываем AddTransfer с полученными данными
-	if err := h.Repository.AddCredit(userID, req.Amount, req.Description, req.IsPermanent, date); err != nil {
+	if err := h.Repository.AddCredit(userID, req.Amount, req.Description, req.IsPermanent, date, endDate); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to add credit	: " + err.Error(),
 		})

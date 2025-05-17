@@ -16,6 +16,7 @@ type SpendingRequest struct {
 	IsPermanent bool    `json:"is_permanent"`                   // Является ли перевод постоянным
 	Date        *string `json:"date"`
 	CategoryID  uint    `json:"category_id" binding:"required"`
+	EndDate     *string `json:"end_date"`
 }
 
 type UpdateSpendingByIDRequest struct {
@@ -57,8 +58,18 @@ func (h *Handler) AddSpending(ctx *gin.Context) {
 		}
 		date = parseDate
 	}
+	endDate := time.Time{}
+	if req.EndDate != nil {
+		parseEndDate, err := utils.ParseDate(*req.EndDate)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+		}
+		endDate = parseEndDate
+	}
 	// Вызываем AddTransfer с полученными данными
-	if err := h.Repository.AddSpending(userID, req.Amount, req.Description, req.IsPermanent, date, req.CategoryID); err != nil {
+	if err := h.Repository.AddSpending(userID, req.Amount, req.Description, req.IsPermanent, date, req.CategoryID, endDate); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to add spending: " + err.Error(),
 		})

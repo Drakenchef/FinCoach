@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (r *Repository) AddCredit(userID uint, amount float64, description string, isPermanent bool, date time.Time) error {
+func (r *Repository) AddCredit(userID uint, amount float64, description string, isPermanent bool, date, endDate time.Time) error {
 	// Создаем объект Transfer
 	credit := models.Credits{
 		UserID:      userID,
@@ -15,6 +15,7 @@ func (r *Repository) AddCredit(userID uint, amount float64, description string, 
 		IsDelete:    false, // Устанавливаем как не удаленный по умолчанию
 		Description: description,
 		IsPermanent: isPermanent,
+		EndDate:     endDate,
 	}
 
 	// Записываем в базу данных через Gorm

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (r *Repository) AddSpending(userID uint, amount float64, description string, isPermanent bool, date time.Time, categoryID uint) error {
+func (r *Repository) AddSpending(userID uint, amount float64, description string, isPermanent bool, date time.Time, categoryID uint, endDate time.Time) error {
 	// Создаем объект Transfer
 	spending := models.Spendings{
 		UserID:      userID,
@@ -16,6 +16,7 @@ func (r *Repository) AddSpending(userID uint, amount float64, description string
 		Description: description,
 		IsPermanent: isPermanent,
 		CategoryID:  categoryID,
+		EndDate:     endDate,
 	}
 
 	// Записываем в базу данных через Gorm
