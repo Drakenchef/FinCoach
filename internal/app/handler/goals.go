@@ -263,8 +263,15 @@ func (h *Handler) GetCurrentGoal(ctx *gin.Context) {
 	goals, err = h.Repository.GetCurrentGoal(userID)
 	// Если произошла ошибка в репозитории
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+		if err.Error() != "no current goal found" {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		// Если ошибка "no current goal found", можно вернуть пустой результат или обработать особым образом
+		ctx.JSON(http.StatusOK, gin.H{
+			"Goal": goals,
 		})
 		return
 	}
