@@ -44,6 +44,9 @@ func (h *Handler) AddCredit(ctx *gin.Context) {
 		return
 	}
 
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 59, now.Location())
+
 	// Если Date пустая, то устанавливаем текущую дату
 	date := time.Now()
 	if req.Date != nil {
@@ -52,6 +55,10 @@ func (h *Handler) AddCredit(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
+		}
+		if parseDate.After(today) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "credit date must be less than current date"})
+			return
 		}
 		date = parseDate
 	}
@@ -62,6 +69,16 @@ func (h *Handler) AddCredit(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
+		}
+		if !parseEndDate.IsZero() {
+			if parseEndDate.Before(date) {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": "credit end_date must be greater than credit date"})
+				return
+			}
+			if parseEndDate.After(today) {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": "credit end_date must be less than current date"})
+				return
+			}
 		}
 		endDate = parseEndDate
 	}
@@ -184,7 +201,8 @@ func (h *Handler) UpdateCreditByID(ctx *gin.Context) {
 		})
 		return
 	}
-
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 59, now.Location())
 	// Получаем ID кредита из URL
 	creditID := ctx.Param("id")
 
@@ -222,6 +240,10 @@ func (h *Handler) UpdateCreditByID(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "date must be in correct format"})
 			return
 		}
+		if date.After(today) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "credit date must be less than current date"})
+			return
+		}
 		credit.Date = date
 	}
 
@@ -238,6 +260,10 @@ func (h *Handler) UpdateCreditByID(ctx *gin.Context) {
 						ctx.JSON(http.StatusBadRequest, gin.H{"error": "credit end_date must be greater than credit date"})
 						return
 					}
+				}
+				if endDate.After(today) {
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": "spending end_date must be less than current date"})
+					return
 				}
 				credit.EndDate = endDate
 			}

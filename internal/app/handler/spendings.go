@@ -47,6 +47,9 @@ func (h *Handler) AddSpending(ctx *gin.Context) {
 		return
 	}
 
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 59, now.Location())
+
 	// Если Date пустая, то устанавливаем текущую дату
 	date := time.Now()
 	if req.Date != nil {
@@ -55,6 +58,10 @@ func (h *Handler) AddSpending(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
+		}
+		if parseDate.After(today) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "spending date must be less than current date"})
+			return
 		}
 		date = parseDate
 	}
@@ -65,6 +72,16 @@ func (h *Handler) AddSpending(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
+		}
+		if !parseEndDate.IsZero() {
+			if parseEndDate.Before(date) {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": "spending end_date must be greater than spending date"})
+				return
+			}
+		}
+		if parseEndDate.After(today) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "spending end_date must be less than current date"})
+			return
 		}
 		endDate = parseEndDate
 	}
@@ -205,6 +222,9 @@ func (h *Handler) UpdateSpendingByID(ctx *gin.Context) {
 		return
 	}
 
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 59, now.Location())
+
 	// Получаем ID кредита из URL
 	spendingID := ctx.Param("id")
 
@@ -242,6 +262,10 @@ func (h *Handler) UpdateSpendingByID(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "date must be in correct format"})
 			return
 		}
+		if date.After(today) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "spending date must be less than current date"})
+			return
+		}
 		spending.Date = date
 	}
 
@@ -276,6 +300,10 @@ func (h *Handler) UpdateSpendingByID(ctx *gin.Context) {
 						ctx.JSON(http.StatusBadRequest, gin.H{"error": "spending end_date must be greater than spending date"})
 						return
 					}
+				}
+				if endDate.After(today) {
+					ctx.JSON(http.StatusBadRequest, gin.H{"error": "spending end_date must be less than current date"})
+					return
 				}
 				spending.EndDate = endDate
 			}
@@ -315,7 +343,7 @@ func (h *Handler) DeleteSpendingByID(ctx *gin.Context) {
 	spending, err := h.Repository.GetSpendingByID(spendingID, userID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "Credit not found",
+			"error": "Spending not found",
 		})
 		return
 	}
@@ -326,7 +354,7 @@ func (h *Handler) DeleteSpendingByID(ctx *gin.Context) {
 	// Обновляем запись в базе данных
 	if err := h.Repository.UpdateSpending(spending); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to delete credit: " + err.Error(),
+			"error": "Failed to delete spending: " + err.Error(),
 		})
 		return
 	}
