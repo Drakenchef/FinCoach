@@ -3,6 +3,7 @@ package handler
 import (
 	"FinCoach/internal/app/models"
 	"FinCoach/internal/app/utils"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -151,4 +152,49 @@ func (h *Handler) DeleteCategoryByID(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
+}
+
+// GetCategoriesMonth возвращает список всех категорий пользователя и траты по этому месяцу.
+func (h *Handler) GetCategoriesMonth(ctx *gin.Context) {
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	categories1, err := h.Repository.GetMonthlySpendingsByCategory(userID)
+	if err != nil && err.Error() != "no categories found for the given user" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	fmt.Println(categories1)
+
+	categories2, err := h.Repository.GetMonthlyPermanentSpendingsByCategory(userID)
+	if err != nil && err.Error() != "no categories found for the given user" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	fmt.Println(categories2)
+
+	fmt.Println("next step")
+
+	// Объединение обоих результатов
+	combined := make(map[string]float64)
+
+	for name, total := range categories1 {
+		combined[name] = total
+		fmt.Println(name, combined[name])
+	}
+	for name, total := range categories2 {
+		if val, exists := combined[name]; exists {
+			combined[name] = val + total
+		} else {
+			combined[name] = total
+		}
+		fmt.Println(name, combined[name])
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"Categories": combined,
+	})
 }

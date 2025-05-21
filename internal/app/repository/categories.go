@@ -176,3 +176,92 @@ func (r *Repository) UpdateCategory(category *models.Categories) error {
 	}
 	return nil
 }
+
+func (r *Repository) GetMonthlySpendingsByCategory(userID uint) (map[string]float64, error) {
+	type categorySpending struct {
+		Name  string
+		Total float64
+	}
+	var results []categorySpending
+
+	now := time.Now()
+	firstDayOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	nextMonth := firstDayOfThisMonth.AddDate(0, 1, 0)
+
+	result := r.db.
+		Table("spendings").
+		Select("categories.name AS name, SUM(spendings.amount) as total").
+		Joins("JOIN categories ON spendings.category_id = categories.id").
+		Where("spendings.user_id = ? AND spendings.is_delete = false AND spendings.date >= ? AND spendings.date < ? AND spendings.is_permanent = false", userID, firstDayOfThisMonth, nextMonth).
+		Group("categories.name").
+		Scan(&results)
+
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, errors.New("no categories found for the given user")
+	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Формируем map: {CategoryName: TotalSpent}
+	spendingsMap := make(map[string]float64)
+	for _, r := range results {
+		spendingsMap[r.Name] = r.Total
+	}
+
+	return spendingsMap, nil
+}
+
+func (r *Repository) GetMonthlyPermanentSpendingsByCategory(userID uint) (map[string]float64, error) {
+	type categorySpending struct {
+		Name  string
+		Total float64
+	}
+	var results []categorySpending
+
+	now := time.Now()
+	todayDay := now.Day()
+
+	query := `
+	SELECT 
+		categories.name AS name,
+		COALESCE(SUM(spendings.amount), 0) AS total
+	FROM spendings
+	JOIN categories ON spendings.category_id = categories.id
+	WHERE
+		spendings.user_id = ?
+		AND spendings.is_delete = false
+		AND spendings.is_permanent = true
+		AND (
+			CASE 
+				WHEN spendings.end_date = '0001-01-01'::date THEN CURRENT_DATE + INTERVAL '1 month' 
+				ELSE spendings.end_date 
+			END
+		) >= CURRENT_DATE
+		AND EXTRACT(DAY FROM spendings.date) <= ?
+	GROUP BY categories.name;
+	`
+
+	result := r.db.Raw(
+		query,
+		userID,
+		todayDay,
+	).Scan(&results)
+
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, result.Error
+	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	spendingsMap := make(map[string]float64)
+	for _, r := range results {
+		spendingsMap[r.Name] = r.Total
+	}
+
+	return spendingsMap, nil
+}

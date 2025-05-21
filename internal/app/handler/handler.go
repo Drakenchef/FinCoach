@@ -89,6 +89,8 @@ func (h *Handler) CategoriesCRUD(router *gin.Engine) {
 	router.GET("/Category/:id", h.WithIdCheck(role.Buyer, role.Moder), h.GetCategoryByID)
 	router.PUT("/Category/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateCategoryByID)
 	router.DELETE("/Category/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteCategoryByID)
+	router.GET("/CategoriesMonth", h.WithIdCheck(role.Buyer, role.Moder), h.GetCategoriesMonth)
+
 }
 
 func (h *Handler) MainPage(router *gin.Engine) {
