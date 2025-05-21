@@ -2,7 +2,6 @@ package handler
 
 import (
 	"FinCoach/internal/app/models"
-	"FinCoach/internal/app/repository"
 	"FinCoach/internal/app/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -22,34 +21,7 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 	var resultRecommendations []models.Recommendations
 
 	// Повышенные расходы в следующей категории - %s - id 1
-	var catsAndPercDiffs []repository.CategoryAnalysisResult
-
-	catsAndPercDiffs, err = h.Repository.CategoryAnalysisPrevMonth(userID)
-	if err != nil {
-		// В случае ошибки можно вернуть пустой список или саму ошибку
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"warning": "error while getting recommendations by categories",
-		})
-		return
-	}
-
-	for i := range catsAndPercDiffs {
-		if catsAndPercDiffs[i].PercentageDifference > 0 {
-			recommendation, e := h.Repository.GetRecommendationByID(1)
-			if e != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation by id from DB"})
-				return
-			}
-			category, e := h.Repository.GetCategoryByIDAndUserID(int(catsAndPercDiffs[i].CategoryID), userID)
-			if e != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get category by id from DB"})
-				return
-			}
-			recommendation.Title = fmt.Sprintf(recommendation.Title, category.Name)
-			recommendation.Description = fmt.Sprintf(recommendation.Description, category.Name, strconv.Itoa(int(catsAndPercDiffs[i].PercentageDifference))+"%")
-			resultRecommendations = append(resultRecommendations, *recommendation)
-		}
-	}
+	h.AnalyzeCategorySpendingGrowth(ctx, &resultRecommendations)
 
 	// 2) Баланс снизился по сравнению с прошлым месяцем
 	currBalance, err := h.Repository.GetBalance(userID)
@@ -64,23 +36,31 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get previous month balance"})
 		return
 	}
-	if currBalance-prevBalance < 0 {
-		var percentDiff float64
-		if prevBalance != 0 {
-			percentDiff = (prevBalance - currBalance) / prevBalance * 100
+	if currBalance < prevBalance {
+		percentDiff := (prevBalance - currBalance) / prevBalance * 100
+		if percentDiff < 0 {
+			percentDiff *= -1
+
+			recommendation, e := h.Repository.GetRecommendationByID(2)
+			if e != nil {
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation 2 from DB"})
+				return
+			}
+			recommendation.Description = fmt.Sprintf(recommendation.Description, strconv.Itoa(int(percentDiff))+"%")
+			resultRecommendations = append(resultRecommendations, *recommendation)
 		}
-		recommendation, e := h.Repository.GetRecommendationByID(2)
-		if e != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation 2 from DB"})
-			return
-		}
-		recommendation.Description = fmt.Sprintf(recommendation.Description, strconv.Itoa(int(percentDiff))+"%")
-		resultRecommendations = append(resultRecommendations, *recommendation)
+
 	}
 
 	// 3) Доходы не изменились, но расходы увеличились
 	thisMonthSpendingsSumm, err := h.Repository.GetThisMonthSpendingsSum(userID)
 	fmt.Println("GetThisMonthSpendingsSum:", thisMonthSpendingsSumm)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get this month spendings summ"})
+		return
+	}
+	thisMonthPermanentSpendingsSumm, err := h.Repository.GetThisMonthPermanentSpendingsSum(userID)
+	fmt.Println("GetThisMonthPermanentSpendingsSum:", thisMonthPermanentSpendingsSumm)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get this month spendings summ"})
 		return
@@ -91,9 +71,22 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get prev month spendings summ"})
 		return
 	}
-	if thisMonthSpendingsSumm-prevMonthSpendingsSumm > 0 {
+	prevMonthPermanentSpendingsSumm, err := h.Repository.GetPrevMonthPermanentSpendingsSum(userID)
+	fmt.Println("GetPrevMonthPermanentSpendingsSum:", prevMonthPermanentSpendingsSumm)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get prev month spendings summ"})
+		return
+	}
+
+	if thisMonthSpendingsSumm+thisMonthPermanentSpendingsSumm-prevMonthSpendingsSumm-prevMonthPermanentSpendingsSumm > 0 {
 		thisMonthCreditsSumm, err := h.Repository.GetThisMonthCreditsSum(userID)
 		fmt.Println("GetThisMonthCreditsSum:", thisMonthCreditsSumm)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get this month credits summ"})
+			return
+		}
+		thisMonthPermanentCreditsSumm, err := h.Repository.GetThisMonthPermanentCreditsSum(userID)
+		fmt.Println("GetThisMonthPermanentCreditsSum:", thisMonthPermanentCreditsSumm)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get this month credits summ"})
 			return
@@ -104,8 +97,14 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get prev month credits summ"})
 			return
 		}
+		prevMonthPermanentCreditsSumm, err := h.Repository.GetPrevMonthPermanentCreditsSum(userID)
+		fmt.Println("GetPrevMonthPermanentCreditsSum:", prevMonthPermanentCreditsSumm)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get prev month credits summ"})
+			return
+		}
 
-		if thisMonthCreditsSumm-prevMonthCreditsSumm <= 0 {
+		if thisMonthCreditsSumm+thisMonthPermanentCreditsSumm-prevMonthCreditsSumm-prevMonthPermanentCreditsSumm <= 0 {
 			percentDiff := (prevBalance - currBalance) / prevBalance * 100
 			if percentDiff > 0 {
 				recommendation, e := h.Repository.GetRecommendationByID(3)
@@ -122,24 +121,37 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 
 	// 4) Постоянное превышение расходов над доходами
 	thisMonthSpendingsSumm, err = h.Repository.GetThisMonthSpendingsSum(userID)
-	fmt.Println("GetThisMonthSpendingsSum2:", thisMonthSpendingsSumm)
+	fmt.Println("GetThisMonthSpendingsSum:", thisMonthSpendingsSumm)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get this month spendings summ"})
+		return
+	}
+	thisMonthPermanentSpendingsSumm, err = h.Repository.GetThisMonthPermanentSpendingsSum(userID)
+	fmt.Println("GetThisMonthPermanentSpendingsSum:", thisMonthPermanentSpendingsSumm)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get this month spendings summ"})
 		return
 	}
 	thisMonthCreditsSumm, err := h.Repository.GetThisMonthCreditsSum(userID)
-	fmt.Println("GetThisMonthCreditsSum2:", thisMonthCreditsSumm)
+	fmt.Println("GetThisMonthCreditsSum:", thisMonthCreditsSumm)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get this month credits summ"})
 		return
 	}
-	if thisMonthSpendingsSumm > thisMonthCreditsSumm {
+	thisMonthPermanentCreditsSumm, err := h.Repository.GetThisMonthPermanentCreditsSum(userID)
+	fmt.Println("GetThisMonthPermanentCreditsSum:", thisMonthPermanentCreditsSumm)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error get this month credits summ"})
+		return
+	}
+
+	if thisMonthSpendingsSumm+thisMonthPermanentSpendingsSumm > thisMonthCreditsSumm+thisMonthPermanentCreditsSumm {
 		recommendation, e := h.Repository.GetRecommendationByID(4)
 		if e != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #4 from DB"})
 			return
 		}
-		recommendation.Description = fmt.Sprintf(recommendation.Description, strconv.Itoa(int(thisMonthSpendingsSumm)), strconv.Itoa(int(thisMonthCreditsSumm)))
+		recommendation.Description = fmt.Sprintf(recommendation.Description, strconv.Itoa(int(thisMonthSpendingsSumm+thisMonthPermanentSpendingsSumm)), strconv.Itoa(int(thisMonthCreditsSumm+thisMonthPermanentCreditsSumm)))
 		resultRecommendations = append(resultRecommendations, *recommendation)
 	}
 
@@ -160,7 +172,6 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 		resultRecommendations = append(resultRecommendations, *recommendation)
 	}
 
-	// 777) Проверка - только начал?
 	isNewUser, err := h.Repository.IsNewUser(userID)
 	fmt.Println("IsNewUser:", isNewUser)
 
@@ -185,4 +196,91 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"Recommendations": resultRecommendations,
 	})
+}
+
+func (h *Handler) AnalyzeCategorySpendingGrowth(ctx *gin.Context, resultRecommendations *[]models.Recommendations) {
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	// Получаем траты по категориям за текущий месяц
+	currMonth1, err := h.Repository.GetMonthlySpendingsByCategory(userID)
+	if err != nil && err.Error() != "no categories found for the given user" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching monthly spendings (non-permanent): " + err.Error()})
+		return
+	}
+	currMonth2, err := h.Repository.GetMonthlyPermanentSpendingsByCategory(userID)
+	if err != nil && err.Error() != "no categories found for the given user" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching monthly spendings (permanent): " + err.Error()})
+		return
+	}
+
+	combinedCurr := make(map[string]float64)
+	for k, v := range currMonth1 {
+		combinedCurr[k] = v
+	}
+	for k, v := range currMonth2 {
+		combinedCurr[k] += v
+	}
+
+	// Получаем траты по категориям за прошлый месяц
+	prevMonth1, err := h.Repository.GetPrevMonthSpendingsByCategory(userID)
+	if err != nil && err.Error() != "no categories found for the given user" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching prev month spendings (non-permanent): " + err.Error()})
+		return
+	}
+	prevMonth2, err := h.Repository.GetPrevMonthPermanentSpendingsByCategory(userID)
+	if err != nil && err.Error() != "no categories found for the given user" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching prev month spendings (permanent): " + err.Error()})
+		return
+	}
+
+	combinedPrev := make(map[string]float64)
+	for k, v := range prevMonth1 {
+		combinedPrev[k] = v
+	}
+	for k, v := range prevMonth2 {
+		combinedPrev[k] += v
+	}
+
+	// Определяем категории с ростом расходов
+	for name, currTotal := range combinedCurr {
+		prevTotal, exists := combinedPrev[name]
+		if exists && currTotal > prevTotal {
+			recommendation, e := h.Repository.GetRecommendationByID(1)
+			if e != nil {
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #1 from DB"})
+				return
+			}
+
+			percentDiff := 0.0
+			if prevTotal > 0 {
+				percentDiff = ((currTotal - prevTotal) / prevTotal) * 100
+			}
+
+			// Получаем категории по имени (если нужно, или просто вставляем name)
+			recommendation.Title = fmt.Sprintf(recommendation.Title, name)
+			recommendation.Description = fmt.Sprintf(recommendation.Description, name, strconv.Itoa(int(percentDiff))+"%")
+
+			*resultRecommendations = append(*resultRecommendations, *recommendation)
+		}
+	}
+
+	// Если отсутствовала категория в прошлом месяце — можно считать, что выросло резко
+	for name, currTotal := range combinedCurr {
+		if prevTotal, exists := combinedPrev[name]; !exists && currTotal > 0 && prevTotal == 0 {
+			recommendation, e := h.Repository.GetRecommendationByID(1)
+			if e != nil {
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #1 from DB"})
+				return
+			}
+
+			recommendation.Title = fmt.Sprintf(recommendation.Title, name)
+			recommendation.Description = fmt.Sprintf(recommendation.Description, name, "100%")
+
+			*resultRecommendations = append(*resultRecommendations, *recommendation)
+		}
+	}
 }

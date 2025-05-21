@@ -71,6 +71,7 @@ func (h *Handler) SpendingCRUD(router *gin.Engine) {
 
 func (h *Handler) Balance(router *gin.Engine) {
 	router.GET("/Balance", h.WithIdCheck(role.Buyer, role.Moder), h.GetBalance)
+	router.GET("/PrevBalance", h.WithIdCheck(role.Buyer, role.Moder), h.GetPrevBalance)
 }
 
 func (h *Handler) GoalCRUD(router *gin.Engine) {

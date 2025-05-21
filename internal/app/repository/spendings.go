@@ -96,7 +96,7 @@ func (r *Repository) GetThisMonthSpendingsSum(userID uint) (float64, error) {
 	nextMonth := firstDayOfThisMonth.AddDate(0, 1, 0)
 
 	err := r.db.Model(&models.Spendings{}).
-		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfThisMonth, nextMonth).
+		Where("user_id = ? AND is_permanent = false AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfThisMonth, nextMonth).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&sum).Error
 	if err != nil {
@@ -117,11 +117,78 @@ func (r *Repository) GetPrevMonthSpendingsSum(userID uint) (float64, error) {
 	firstDayOfPrevMonth := time.Date(lastMonth.Year(), lastMonth.Month(), 1, 0, 0, 0, 0, now.Location())
 
 	err := r.db.Model(&models.Spendings{}).
-		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfPrevMonth, firstDayOfThisMonth).
+		Where("user_id = ? AND is_permanent = false AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfPrevMonth, firstDayOfThisMonth).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&sum).Error
 	if err != nil {
 		return 0, err
 	}
 	return sum, nil
+}
+
+func (r *Repository) GetThisMonthPermanentSpendingsSum(userID uint) (float64, error) {
+	type result struct {
+		Total float64
+	}
+	var res result
+
+	now := time.Now()
+	currentDay := now.Day()
+
+	query := `
+		SELECT 
+			COALESCE(SUM(spendings.amount), 0) AS total
+		FROM spendings
+		WHERE
+			spendings.user_id = ?
+			AND spendings.is_permanent = true
+			AND spendings.is_delete = false
+			AND (
+				-- Если end_date = '0001-01-01', значит считаем как будто бессрочно (до сегодняшней даты + месяц)
+				CASE 
+					WHEN spendings.end_date = '0001-01-01'::date THEN CURRENT_DATE + INTERVAL '1 month'
+					ELSE spendings.end_date 
+				END
+			) >= CURRENT_DATE
+			AND EXTRACT(DAY FROM spendings.date) <= ?
+	`
+
+	err := r.db.Raw(query, userID, currentDay).Scan(&res).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Total, nil
+}
+
+func (r *Repository) GetPrevMonthPermanentSpendingsSum(userID uint) (float64, error) {
+	type result struct {
+		Total float64
+	}
+	var res result
+
+	now := time.Now()
+	firstOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	firstOfPrevMonth := firstOfThisMonth.AddDate(0, -1, 0)
+
+	query := `
+		SELECT 
+			COALESCE(SUM(spendings.amount), 0) AS total
+		FROM spendings
+		WHERE
+			spendings.user_id = ?
+			AND spendings.is_permanent = true
+			AND spendings.is_delete = false
+			AND (
+				spendings.end_date = '0001-01-01' OR spendings.end_date >= ?
+			)
+			AND spendings.date <= ?
+	`
+
+	err := r.db.Raw(query, userID, firstOfPrevMonth, firstOfPrevMonth).Scan(&res).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Total, nil
 }

@@ -86,7 +86,7 @@ func (r *Repository) GetThisMonthCreditsSum(userID uint) (float64, error) {
 	nextMonth := firstDayOfThisMonth.AddDate(0, 1, 0)
 
 	err := r.db.Model(&models.Credits{}).
-		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfThisMonth, nextMonth).
+		Where("user_id = ? AND is_permanent = false AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfThisMonth, nextMonth).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&sum).Error
 	if err != nil {
@@ -106,11 +106,77 @@ func (r *Repository) GetPrevMonthCreditsSum(userID uint) (float64, error) {
 	firstDayOfPrevMonth := time.Date(lastMonth.Year(), lastMonth.Month(), 1, 0, 0, 0, 0, now.Location())
 
 	err := r.db.Model(&models.Credits{}).
-		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfPrevMonth, firstDayOfThisMonth).
+		Where("user_id = ? AND is_permanent = false AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfPrevMonth, firstDayOfThisMonth).
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&sum).Error
 	if err != nil {
 		return 0, err
 	}
 	return sum, nil
+}
+
+func (r *Repository) GetThisMonthPermanentCreditsSum(userID uint) (float64, error) {
+	type result struct {
+		Total float64
+	}
+	var res result
+
+	now := time.Now()
+	currentDay := now.Day()
+
+	query := `
+		SELECT 
+			COALESCE(SUM(credits.amount), 0) AS total
+		FROM credits
+		WHERE
+			credits.user_id = ?
+			AND credits.is_permanent = true
+			AND credits.is_delete = false
+			AND (
+				CASE 
+					WHEN credits.end_date = '0001-01-01'::date THEN CURRENT_DATE + INTERVAL '1 month'
+					ELSE credits.end_date 
+				END
+			) >= CURRENT_DATE
+			AND EXTRACT(DAY FROM credits.date) <= ?
+	`
+
+	err := r.db.Raw(query, userID, currentDay).Scan(&res).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Total, nil
+}
+
+func (r *Repository) GetPrevMonthPermanentCreditsSum(userID uint) (float64, error) {
+	type result struct {
+		Total float64
+	}
+	var res result
+
+	now := time.Now()
+	firstOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	firstOfPrevMonth := firstOfThisMonth.AddDate(0, -1, 0)
+
+	query := `
+		SELECT 
+			COALESCE(SUM(credits.amount), 0) AS total
+		FROM credits
+		WHERE
+			credits.user_id = ?
+			AND credits.is_permanent = true
+			AND credits.is_delete = false
+			AND (
+				credits.end_date = '0001-01-01' OR credits.end_date >= ?
+			)
+			AND credits.date <= ?
+	`
+
+	err := r.db.Raw(query, userID, firstOfPrevMonth, firstOfPrevMonth).Scan(&res).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Total, nil
 }

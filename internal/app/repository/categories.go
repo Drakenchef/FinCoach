@@ -98,7 +98,7 @@ func (r *Repository) CheckDominantCategory(userID uint) (*models.Categories, boo
 	err := r.db.
 		Table("spendings").
 		Select("category_id, SUM(amount) as total").
-		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ?", userID, firstDayOfThisMonth, nextMonth).
+		Where("user_id = ? AND is_delete = false AND date >= ? AND date < ? and is_permanent = false", userID, firstDayOfThisMonth, nextMonth).
 		Group("category_id").
 		Scan(&sums).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -249,6 +249,101 @@ func (r *Repository) GetMonthlyPermanentSpendingsByCategory(userID uint) (map[st
 		query,
 		userID,
 		todayDay,
+	).Scan(&results)
+
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, result.Error
+	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	spendingsMap := make(map[string]float64)
+	for _, r := range results {
+		spendingsMap[r.Name] = r.Total
+	}
+
+	return spendingsMap, nil
+}
+
+func (r *Repository) GetPrevMonthSpendingsByCategory(userID uint) (map[string]float64, error) {
+	type categorySpending struct {
+		Name  string
+		Total float64
+	}
+	var results []categorySpending
+
+	now := time.Now()
+	firstDayOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	firstDayOfLastMonth := firstDayOfThisMonth.AddDate(0, -1, 0)
+
+	result := r.db.
+		Table("spendings").
+		Select("categories.name AS name, SUM(spendings.amount) as total").
+		Joins("JOIN categories ON spendings.category_id = categories.id").
+		Where(`spendings.user_id = ? 
+			AND spendings.is_delete = false
+			AND spendings.date >= ? AND spendings.date < ?
+			AND spendings.is_permanent = false`, userID, firstDayOfLastMonth, firstDayOfThisMonth).
+		Group("categories.name").
+		Scan(&results)
+
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, result.Error
+	}
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Формируем map: {CategoryName: TotalSpent}
+	spendingsMap := make(map[string]float64)
+	for _, r := range results {
+		spendingsMap[r.Name] = r.Total
+	}
+
+	return spendingsMap, nil
+}
+
+func (r *Repository) GetPrevMonthPermanentSpendingsByCategory(userID uint) (map[string]float64, error) {
+	type categorySpending struct {
+		Name  string
+		Total float64
+	}
+	var results []categorySpending
+
+	now := time.Now()
+	firstDayOfThisMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	firstDayOfLastMonth := firstDayOfThisMonth.AddDate(0, -1, 0)
+	lastMonthDay := now.AddDate(0, -1, 0).Day()
+
+	query := `
+	SELECT 
+		categories.name AS name,
+		COALESCE(SUM(spendings.amount), 0) AS total
+	FROM spendings
+	JOIN categories ON spendings.category_id = categories.id
+	WHERE
+		spendings.user_id = ?
+		AND spendings.is_delete = false
+		AND spendings.is_permanent = true
+		AND (
+			CASE 
+				WHEN spendings.end_date = '0001-01-01'::date 
+					THEN date_trunc('month', CURRENT_DATE) 
+				ELSE spendings.end_date 
+			END
+		) >= ?
+		AND spendings.date <= ?
+		AND spendings.date < ?
+	GROUP BY categories.name;
+	`
+
+	result := r.db.Raw(
+		query,
+		userID,
+		firstDayOfLastMonth,
+		time.Date(firstDayOfLastMonth.Year(), firstDayOfLastMonth.Month(), lastMonthDay, 0, 0, 0, 0, now.Location()),
+		firstDayOfThisMonth,
 	).Scan(&results)
 
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {

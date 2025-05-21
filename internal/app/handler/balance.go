@@ -30,3 +30,28 @@ func (h *Handler) GetBalance(ctx *gin.Context) {
 		"balance": balance,
 	})
 }
+
+func (h *Handler) GetPrevBalance(ctx *gin.Context) {
+	// Извлекаем userID из контекста
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized user",
+		})
+		return
+	}
+	balance, err := h.Repository.GetLastMonthBalance(userID)
+	// Если произошла ошибка в репозитории
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	h.AchieveCurrentGoal(ctx)
+	// Возвращаем успешный ответ
+	ctx.JSON(http.StatusOK, gin.H{
+		"balance": balance,
+	})
+}
