@@ -155,23 +155,6 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 		resultRecommendations = append(resultRecommendations, *recommendation)
 	}
 
-	// 5) Основная часть бюджета уходит на одну категорию %s
-	dominantCategory, isDominant, err := h.Repository.CheckDominantCategory(userID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error checking dominant category"})
-		return
-	}
-	if isDominant {
-		recommendation, e := h.Repository.GetRecommendationByID(5)
-		if e != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #5 from DB"})
-			return
-		}
-		recommendation.Title = fmt.Sprintf(recommendation.Title, dominantCategory.Name)
-		recommendation.Description = fmt.Sprintf(recommendation.Description, dominantCategory.Name)
-		resultRecommendations = append(resultRecommendations, *recommendation)
-	}
-
 	isNewUser, err := h.Repository.IsNewUser(userID)
 	fmt.Println("IsNewUser:", isNewUser)
 
