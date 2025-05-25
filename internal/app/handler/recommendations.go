@@ -105,17 +105,18 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 		}
 
 		if thisMonthCreditsSumm+thisMonthPermanentCreditsSumm-prevMonthCreditsSumm-prevMonthPermanentCreditsSumm <= 0 {
-			percentDiff := (prevBalance - currBalance) / prevBalance * 100
-			if percentDiff > 0 {
-				recommendation, e := h.Repository.GetRecommendationByID(3)
-				if e != nil {
-					ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation 3 from DB"})
-					return
+			if prevBalance > 0 {
+				percentDiff := (prevBalance - currBalance) / prevBalance * 100
+				if percentDiff > 0 {
+					recommendation, e := h.Repository.GetRecommendationByID(3)
+					if e != nil {
+						ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation 3 from DB"})
+						return
+					}
+					recommendation.Description = fmt.Sprintf(recommendation.Description, strconv.Itoa(int(percentDiff))+"%")
+					resultRecommendations = append(resultRecommendations, *recommendation)
 				}
-				recommendation.Description = fmt.Sprintf(recommendation.Description, strconv.Itoa(int(percentDiff))+"%")
-				resultRecommendations = append(resultRecommendations, *recommendation)
 			}
-
 		}
 	}
 
