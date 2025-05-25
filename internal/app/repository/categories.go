@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"FinCoach/internal"
 	"FinCoach/internal/app/models"
 	"errors"
 	"fmt"
@@ -141,6 +142,17 @@ func (r *Repository) CheckDominantCategory(userID uint) (*models.Categories, boo
 
 // AddCategory создает новую категорию (цель) в базе данных.
 func (r *Repository) AddCategory(userID uint, name, description string) error {
+	var count int64
+	// Проверяем, есть ли уже категория с таким же именем у данного пользователя и не удалена ли она
+	if err := r.db.Model(&models.Categories{}).
+		Where("user_id = ? AND name = ? AND is_delete = false", userID, name).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return errors.New("Категория с таким именем уже существует")
+	}
+
 	category := models.Categories{
 		UserID:      userID,
 		Name:        name,
@@ -157,7 +169,7 @@ func (r *Repository) AddCategory(userID uint, name, description string) error {
 // GetAllCategoriesList возвращает все категории пользователя, не помеченные как удаленные.
 func (r *Repository) GetAllCategoriesList(userID uint) (*[]models.Categories, error) {
 	var categories []models.Categories
-	result := r.db.Where("is_delete = ? AND user_id = ?", false, userID).
+	result := r.db.Where("is_delete = ? AND user_id = ? AND name != ?", false, userID, internal.DefaultCategoryName).
 		Find(&categories)
 
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -192,7 +204,7 @@ func (r *Repository) GetMonthlySpendingsByCategory(userID uint) (map[string]floa
 		Table("spendings").
 		Select("categories.name AS name, SUM(spendings.amount) as total").
 		Joins("JOIN categories ON spendings.category_id = categories.id").
-		Where("spendings.user_id = ? AND spendings.is_delete = false AND spendings.date >= ? AND spendings.date < ? AND spendings.is_permanent = false", userID, firstDayOfThisMonth, nextMonth).
+		Where("spendings.user_id = ? AND spendings.is_delete = false AND spendings.date >= ? AND spendings.date < ? AND spendings.is_permanent = false AND categories.name != ?", userID, firstDayOfThisMonth, nextMonth, internal.DefaultCategoryName).
 		Group("categories.name").
 		Scan(&results)
 
@@ -235,12 +247,14 @@ func (r *Repository) GetMonthlyPermanentSpendingsByCategory(userID uint) (map[st
 		spendings.user_id = ?
 		AND spendings.is_delete = false
 		AND spendings.is_permanent = true
+	  	AND categories.name != 'Нет категории'
 		AND (
 			CASE 
 				WHEN spendings.end_date = '0001-01-01'::date THEN CURRENT_DATE + INTERVAL '1 month' 
 				ELSE spendings.end_date 
 			END
-		) >= CURRENT_DATE
+		) >= date_trunc('month', CURRENT_DATE)
+		AND EXTRACT(DAY FROM spendings.date) <= EXTRACT(DAY FROM spendings.end_date)
 		AND EXTRACT(DAY FROM spendings.date) <= ?
 	GROUP BY categories.name;
 	`
@@ -284,6 +298,7 @@ func (r *Repository) GetPrevMonthSpendingsByCategory(userID uint) (map[string]fl
 		Where(`spendings.user_id = ? 
 			AND spendings.is_delete = false
 			AND spendings.date >= ? AND spendings.date < ?
+			AND categories.name != 'Нет категории'
 			AND spendings.is_permanent = false`, userID, firstDayOfLastMonth, firstDayOfThisMonth).
 		Group("categories.name").
 		Scan(&results)
@@ -326,6 +341,7 @@ func (r *Repository) GetPrevMonthPermanentSpendingsByCategory(userID uint) (map[
 		spendings.user_id = ?
 		AND spendings.is_delete = false
 		AND spendings.is_permanent = true
+	  	AND categories.name != 'Нет категории'
 		AND (
 			CASE 
 				WHEN spendings.end_date = '0001-01-01'::date 
@@ -359,4 +375,21 @@ func (r *Repository) GetPrevMonthPermanentSpendingsByCategory(userID uint) (map[
 	}
 
 	return spendingsMap, nil
+}
+
+// GetDefaultCategory возвращает дефолтную категорию "Нет категории" для данного пользователя
+func (r *Repository) GetDefaultCategory(userID uint) (*models.Categories, error) {
+	var category models.Categories
+	err := r.db.Where("user_id = ? AND name = ? AND is_delete = false", userID, "Нет категории").First(&category).Error
+	if err != nil {
+		return nil, err
+	}
+	return &category, nil
+}
+
+// UpdateSpendingsCategory меняет всем spendings c oldCategoryID на newCategoryID у пользователя userID
+func (r *Repository) UpdateSpendingsCategory(userID, oldCategoryID, newCategoryID uint) error {
+	return r.db.Model(&models.Spendings{}).
+		Where("user_id = ? AND category_id = ? AND is_delete = false", userID, oldCategoryID).
+		Update("category_id", newCategoryID).Error
 }

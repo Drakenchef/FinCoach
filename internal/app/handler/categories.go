@@ -34,6 +34,9 @@ func (h *Handler) AddCategory(ctx *gin.Context) {
 	}
 
 	if err := h.Repository.AddCategory(userID, req.Name, req.Description); err != nil {
+		if err.Error() == "Категория с таким именем уже существует" {
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add category"})
 		return
 	}
@@ -145,9 +148,28 @@ func (h *Handler) DeleteCategoryByID(ctx *gin.Context) {
 		return
 	}
 
+	// Не даём удалить "Нет категории"
+	if category.Name == "Нет категории" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete 'Нет категории' category"})
+		return
+	}
+
 	category.IsDelete = true
 	if err := h.Repository.UpdateCategory(category); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete category: " + err.Error()})
+		return
+	}
+
+	// Находим ID дефолтной категории "Нет категории"
+	defaultCategory, err := h.Repository.GetDefaultCategory(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find default category: " + err.Error()})
+		return
+	}
+
+	// Обновляем Spendings: все к которым относится удаляемая категория → на "Нет категории"
+	if err := h.Repository.UpdateSpendingsCategory(userID, uint(categoryID), defaultCategory.ID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update spendings: " + err.Error()})
 		return
 	}
 

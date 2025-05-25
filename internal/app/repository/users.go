@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"FinCoach/internal"
 	"FinCoach/internal/app/models"
 )
 
@@ -11,7 +12,21 @@ func (r *Repository) UsersList() (*[]models.Users, error) {
 }
 
 func (r *Repository) Register(user *models.Users) error {
-	return r.db.Create(user).Error
+	err := r.db.Create(user).Error
+	if err != nil {
+		return err
+	}
+	category := models.Categories{
+		UserID:      user.ID,
+		Name:        internal.DefaultCategoryName,
+		Description: "",
+		IsDelete:    false,
+	}
+
+	if err = r.db.Create(&category).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *Repository) GetUserByLogin(login string) (*models.Users, error) {
