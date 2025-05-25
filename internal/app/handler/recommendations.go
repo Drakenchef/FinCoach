@@ -155,6 +155,67 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 		resultRecommendations = append(resultRecommendations, *recommendation)
 	}
 
+	// 5) Основная часть бюджета уходит на одну категорию %s
+	categories1, err := h.Repository.GetMonthlySpendingsByCategory(userID)
+	if err != nil && err.Error() != "no categories found for the given user" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	categories2, err := h.Repository.GetMonthlyPermanentSpendingsByCategory(userID)
+	if err != nil && err.Error() != "no categories found for the given user" {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Объединение обоих результатов
+	combined := make(map[string]float64)
+
+	for name, total := range categories1 {
+		combined[name] = total
+	}
+
+	for name, total := range categories2 {
+		if val, exists := combined[name]; exists {
+			combined[name] = val + total
+		} else {
+			combined[name] = total
+		}
+	}
+
+	// Вычисляем сумму всех трат
+	var totalSum float64
+	for _, val := range combined {
+		totalSum += val
+	}
+
+	// Определяем, есть ли доминирующая категория (>30% от общих трат)
+	isDominant := false
+	var dominantCategory struct {
+		Name  string
+		Value float64
+	}
+
+	for name, val := range combined {
+		if totalSum > 0 && (val/totalSum) > 0.3 {
+			isDominant = true
+			dominantCategory.Name = name
+			dominantCategory.Value = val
+			break
+		}
+	}
+
+	if isDominant {
+		recommendation, e := h.Repository.GetRecommendationByID(5)
+		if e != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #5 from DB"})
+			return
+		}
+		recommendation.Title = fmt.Sprintf(recommendation.Title, dominantCategory.Name)
+		recommendation.Description = fmt.Sprintf(recommendation.Description, dominantCategory.Name)
+		resultRecommendations = append(resultRecommendations, *recommendation)
+	}
+
 	isNewUser, err := h.Repository.IsNewUser(userID)
 	fmt.Println("IsNewUser:", isNewUser)
 
