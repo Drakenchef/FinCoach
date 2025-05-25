@@ -248,23 +248,29 @@ func (r *Repository) GetMonthlyPermanentSpendingsByCategory(userID uint) (map[st
 
 	query := `
 	SELECT 
-		categories.name AS name,
-		COALESCE(SUM(spendings.amount), 0) AS total
-	FROM spendings
-	JOIN categories ON spendings.category_id = categories.id
-	WHERE
-		spendings.user_id = ?
-		AND spendings.is_delete = false
-		AND spendings.is_permanent = true
-		AND (
-			CASE 
-				WHEN spendings.end_date = '0001-01-01'::date THEN CURRENT_DATE + INTERVAL '1 month' 
-				ELSE spendings.end_date 
-			END
-		) >= date_trunc('month', CURRENT_DATE)
-		AND EXTRACT(DAY FROM spendings.date) <= EXTRACT(DAY FROM spendings.end_date)
-		AND EXTRACT(DAY FROM spendings.date) <= ?
-	GROUP BY categories.name;
+  categories.name AS name,
+  COALESCE(SUM(spendings.amount), 0) AS total
+FROM spendings
+JOIN categories ON spendings.category_id = categories.id
+WHERE
+  spendings.user_id = ?
+  AND spendings.is_delete = false
+  AND spendings.is_permanent = true
+  AND (
+    CASE 
+      WHEN spendings.end_date = '0001-01-01'::date THEN CURRENT_DATE + INTERVAL '1 month'
+      ELSE spendings.end_date 
+    END
+  ) >= date_trunc('month', CURRENT_DATE)
+  AND (
+    (spendings.end_date = '0001-01-01'::date)
+    OR
+    (
+      EXTRACT(DAY FROM spendings.date) <= EXTRACT(DAY FROM spendings.end_date)
+      AND EXTRACT(DAY FROM spendings.date) <= ?
+    )
+  )
+GROUP BY categories.name;
 	`
 
 	result := r.db.Raw(
