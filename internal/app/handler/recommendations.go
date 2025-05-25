@@ -216,24 +216,25 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 		resultRecommendations = append(resultRecommendations, *recommendation)
 	}
 
-	isNewUser, err := h.Repository.IsNewUser(userID)
-	fmt.Println("IsNewUser:", isNewUser)
+	savings1, err := h.Repository.GetThisMonthCreditsSum(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error checking savings"})
+		return
+	}
 
-	// 6) Нет накоплений в этом месяце
-	if !isNewUser {
-		noSavings, err := h.Repository.GetThisMonthCreditsSum(userID)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error checking savings"})
+	savings2, err := h.Repository.GetThisMonthPermanentCreditsSum(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error checking savings"})
+		return
+	}
+
+	if savings1+savings2 == 0 {
+		recommendation, e := h.Repository.GetRecommendationByID(6)
+		if e != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #6 from DB"})
 			return
 		}
-		if noSavings == 0 {
-			recommendation, e := h.Repository.GetRecommendationByID(6)
-			if e != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #6 from DB"})
-				return
-			}
-			resultRecommendations = append(resultRecommendations, *recommendation)
-		}
+		resultRecommendations = append(resultRecommendations, *recommendation)
 	}
 
 	// Возвращаем успешный ответ с массивом рекомендаций
