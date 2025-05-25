@@ -37,19 +37,20 @@ func (h *Handler) GetRecommendation(ctx *gin.Context) {
 		return
 	}
 	if currBalance < prevBalance {
-		percentDiff := (prevBalance - currBalance) / prevBalance * 100
-		if percentDiff < 0 {
-			percentDiff *= -1
+		if prevBalance > 0 {
+			percentDiff := (prevBalance - currBalance) / prevBalance * 100
+			if percentDiff < 0 {
+				percentDiff *= -1
 
-			recommendation, e := h.Repository.GetRecommendationByID(2)
-			if e != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation 2 from DB"})
-				return
+				recommendation, e := h.Repository.GetRecommendationByID(2)
+				if e != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation 2 from DB"})
+					return
+				}
+				recommendation.Description = fmt.Sprintf(recommendation.Description, strconv.Itoa(int(percentDiff))+"%")
+				resultRecommendations = append(resultRecommendations, *recommendation)
 			}
-			recommendation.Description = fmt.Sprintf(recommendation.Description, strconv.Itoa(int(percentDiff))+"%")
-			resultRecommendations = append(resultRecommendations, *recommendation)
 		}
-
 	}
 
 	// 3) Доходы не изменились, но расходы увеличились
@@ -294,7 +295,7 @@ func (h *Handler) AnalyzeCategorySpendingGrowth(ctx *gin.Context, resultRecommen
 	// Определяем категории с ростом расходов
 	for name, currTotal := range combinedCurr {
 		prevTotal, exists := combinedPrev[name]
-		if exists && currTotal > prevTotal {
+		if exists && currTotal > prevTotal && prevTotal > 0 {
 			recommendation, e := h.Repository.GetRecommendationByID(1)
 			if e != nil {
 				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #1 from DB"})
@@ -309,22 +310,6 @@ func (h *Handler) AnalyzeCategorySpendingGrowth(ctx *gin.Context, resultRecommen
 			// Получаем категории по имени (если нужно, или просто вставляем name)
 			recommendation.Title = fmt.Sprintf(recommendation.Title, name)
 			recommendation.Description = fmt.Sprintf(recommendation.Description, name, strconv.Itoa(int(percentDiff))+"%")
-
-			*resultRecommendations = append(*resultRecommendations, *recommendation)
-		}
-	}
-
-	// Если отсутствовала категория в прошлом месяце — можно считать, что выросло резко
-	for name, currTotal := range combinedCurr {
-		if prevTotal, exists := combinedPrev[name]; !exists && currTotal > 0 && prevTotal == 0 {
-			recommendation, e := h.Repository.GetRecommendationByID(1)
-			if e != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "can't get recommendation #1 from DB"})
-				return
-			}
-
-			recommendation.Title = fmt.Sprintf(recommendation.Title, name)
-			recommendation.Description = fmt.Sprintf(recommendation.Description, name, "100%")
 
 			*resultRecommendations = append(*resultRecommendations, *recommendation)
 		}
