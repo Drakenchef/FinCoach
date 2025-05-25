@@ -19,7 +19,7 @@ func (r *Repository) Register(user *models.Users) error {
 	category := models.Categories{
 		UserID:      user.ID,
 		Name:        internal.DefaultCategoryName,
-		Description: "",
+		Description: "Базовая категория",
 		IsDelete:    false,
 	}
 
