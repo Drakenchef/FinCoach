@@ -34,7 +34,8 @@ func (h *Handler) AddCategory(ctx *gin.Context) {
 	}
 
 	if err := h.Repository.AddCategory(userID, req.Name, req.Description); err != nil {
-		if err.Error() == "Категория с таким именем уже существует" {
+		if err.Error() == "Category name must be unique" {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Category name must be unique"})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add category"})
@@ -115,6 +116,11 @@ func (h *Handler) UpdateCategoryByID(ctx *gin.Context) {
 
 	// Обновляем поля
 	if req.Name != "" {
+		count, _ := h.Repository.GetCategoryCountByNameAndUserID(req.Name, userID)
+		if count > 0 {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Category name must be unique"})
+			return
+		}
 		category.Name = req.Name
 	}
 	if req.Description != "" {

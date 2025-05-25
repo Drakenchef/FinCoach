@@ -79,6 +79,16 @@ func (r *Repository) GetCategoryByIDAndUserID(categoryID int, userID uint) (*mod
 	return &category, nil
 }
 
+func (r *Repository) GetCategoryCountByNameAndUserID(categoryName string, userID uint) (int64, *models.Categories) {
+	var category models.Categories
+	var count int64
+	r.db.Model(&models.Categories{}).
+		Where("name = ? AND user_id = ? AND is_delete = ?", categoryName, userID, false).
+		Count(&count).
+		First(&category)
+	return count, &category
+}
+
 // CheckDominantCategory возвращает категорию, которая занимает наибольшую долю
 // расходов за текущий месяц, и булево значение, указывающее, является ли она
 // "доминирующей" (например, больше 50% от всех расходов).
@@ -149,7 +159,7 @@ func (r *Repository) AddCategory(userID uint, name, description string) error {
 		return err
 	}
 	if count > 0 {
-		return errors.New("Категория с таким именем уже существует")
+		return errors.New("Category name must be unique")
 	}
 
 	category := models.Categories{
