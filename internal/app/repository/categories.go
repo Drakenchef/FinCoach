@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"FinCoach/internal"
 	"FinCoach/internal/app/models"
 	"errors"
 	"fmt"
@@ -169,7 +168,7 @@ func (r *Repository) AddCategory(userID uint, name, description string) error {
 // GetAllCategoriesList возвращает все категории пользователя, не помеченные как удаленные.
 func (r *Repository) GetAllCategoriesList(userID uint) (*[]models.Categories, error) {
 	var categories []models.Categories
-	result := r.db.Where("is_delete = ? AND user_id = ? AND name != ?", false, userID, internal.DefaultCategoryName).
+	result := r.db.Where("is_delete = ? AND user_id = ?", false, userID).
 		Find(&categories)
 
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -204,7 +203,7 @@ func (r *Repository) GetMonthlySpendingsByCategory(userID uint) (map[string]floa
 		Table("spendings").
 		Select("categories.name AS name, SUM(spendings.amount) as total").
 		Joins("JOIN categories ON spendings.category_id = categories.id").
-		Where("spendings.user_id = ? AND spendings.is_delete = false AND spendings.date >= ? AND spendings.date < ? AND spendings.is_permanent = false AND categories.name != ?", userID, firstDayOfThisMonth, nextMonth, internal.DefaultCategoryName).
+		Where("spendings.user_id = ? AND spendings.is_delete = false AND spendings.date >= ? AND spendings.date < ? AND spendings.is_permanent = false", userID, firstDayOfThisMonth, nextMonth).
 		Group("categories.name").
 		Scan(&results)
 
@@ -247,7 +246,6 @@ func (r *Repository) GetMonthlyPermanentSpendingsByCategory(userID uint) (map[st
 		spendings.user_id = ?
 		AND spendings.is_delete = false
 		AND spendings.is_permanent = true
-	  	AND categories.name != 'Нет категории'
 		AND (
 			CASE 
 				WHEN spendings.end_date = '0001-01-01'::date THEN CURRENT_DATE + INTERVAL '1 month' 
@@ -298,7 +296,6 @@ func (r *Repository) GetPrevMonthSpendingsByCategory(userID uint) (map[string]fl
 		Where(`spendings.user_id = ? 
 			AND spendings.is_delete = false
 			AND spendings.date >= ? AND spendings.date < ?
-			AND categories.name != 'Нет категории'
 			AND spendings.is_permanent = false`, userID, firstDayOfLastMonth, firstDayOfThisMonth).
 		Group("categories.name").
 		Scan(&results)
@@ -341,7 +338,6 @@ func (r *Repository) GetPrevMonthPermanentSpendingsByCategory(userID uint) (map[
 		spendings.user_id = ?
 		AND spendings.is_delete = false
 		AND spendings.is_permanent = true
-	  	AND categories.name != 'Нет категории'
 		AND (
 			CASE 
 				WHEN spendings.end_date = '0001-01-01'::date 
@@ -377,10 +373,10 @@ func (r *Repository) GetPrevMonthPermanentSpendingsByCategory(userID uint) (map[
 	return spendingsMap, nil
 }
 
-// GetDefaultCategory возвращает дефолтную категорию "Нет категории" для данного пользователя
+// GetDefaultCategory возвращает дефолтную категорию "Разное" для данного пользователя
 func (r *Repository) GetDefaultCategory(userID uint) (*models.Categories, error) {
 	var category models.Categories
-	err := r.db.Where("user_id = ? AND name = ? AND is_delete = false", userID, "Нет категории").First(&category).Error
+	err := r.db.Where("user_id = ? AND name = ? AND is_delete = false", userID, "Разное").First(&category).Error
 	if err != nil {
 		return nil, err
 	}

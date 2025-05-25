@@ -1,3 +1,3 @@
 package internal
 
-const DefaultCategoryName = "Нет категории"
+const DefaultCategoryName = "Разное"
