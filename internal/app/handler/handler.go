@@ -91,12 +91,12 @@ func (h *Handler) CategoriesCRUD(router *gin.Engine) {
 	router.PUT("/Category/:id", h.WithIdCheck(role.Buyer, role.Moder), h.UpdateCategoryByID)
 	router.DELETE("/Category/:id", h.WithIdCheck(role.Buyer, role.Moder), h.DeleteCategoryByID)
 	router.GET("/CategoriesMonth", h.WithIdCheck(role.Buyer, role.Moder), h.GetCategoriesMonth)
-
 }
 
 func (h *Handler) MainPage(router *gin.Engine) {
 	router.GET("/Recommendations", h.WithIdCheck(role.Buyer, role.Moder), h.GetRecommendation)
 	router.GET("/FinancialOverview", h.WithIdCheck(role.Buyer, role.Moder), h.GetFinancialOverview)
+	router.GET("/Reminder", h.WithIdCheck(role.Buyer, role.Moder), h.GetReminder)
 }
 
 // request status
